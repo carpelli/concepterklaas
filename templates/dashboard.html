@@ -1,17 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Your Assignment</title>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; text-align: center; }
-        .assignment { border: 2px solid #4CAF50; padding: 30px; margin-top: 20px; background-color: #f0fff0; }
-        h1, h2 { color: #333; }
-        p { font-size: 1.2em; }
-        a { color: #007bff; }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block content %}
     <h1>Hello, {{ user.name }}!</h1>
 
     {% if user.assigned_person_name %}
@@ -25,5 +14,4 @@
     {% endif %}
 
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
-</body>
-</html>
+{% endblock %}
