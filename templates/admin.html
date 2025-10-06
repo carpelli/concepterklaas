@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+  <h1>Admin</h1>
+  <h2>Participants</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Account Created</th>
+        <th>Concept Submitted</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for person in participants %}
+        <tr>
+          <td>{{ person.name }}</td>
+          <td>{{ "Yes" if person.password_hash else "No" }}</td>
+          <td>{{ "Yes" if person.concept else "No" }}</td>
+          <td>
+            <form method="post" action="{{ url_for('remove_participant', person_id=person.id) }}">
+              <button type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Add Participant</h2>
+  <form method="post" action="{{ url_for('add_participant') }}">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" required>
+    <button type="submit">Add</button>
+  </form>
+{% endblock %}

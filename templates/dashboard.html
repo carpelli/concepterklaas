@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
     <h1>Hello, {{ user.name }}!</h1>
-    {% if user.assigned_person_name %}
+    {% if user.receiver %}
         <div class="assignment">
             <h2>You are the Secret Santa for...</h2>
             <p>
                 <strong>{{ user.receiver.name }}</strong>
             </p>
             <p>
-                Their wish is: <strong>{{ user.concept }}</strong>
+                Their wish is: <strong>{{ user.receiver.concept }}</strong>
             </p>
         </div>
     {% else %}

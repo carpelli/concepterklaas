@@ -1,7 +1,9 @@
 import random
+from functools import wraps
 from pathlib import Path
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import (Flask, flash, redirect, render_template, request, session,
+                   url_for)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -16,9 +18,6 @@ app.config["SECRET_KEY"] = "a_really_strong_secret_key_goes_here"
 
 # IMPORTANT: Change this admin secret to protect the assignment route!
 ADMIN_SECRET = "make-this-a-long-random-string"
-
-# Define the list of participants
-PARTICIPANTS = ["Alice", "Bob", "Charlie", "Diana", "Eve"]
 
 # Database setup
 db_path = Path(__file__).parent / "instance" / "app.db"
@@ -42,7 +41,7 @@ class Person(db.Model):
     concept: Mapped[str | None] = mapped_column(String(200))
 
     receiver_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("person.id"))
-    receiver: Mapped["Person | None"] = relationship()
+    receiver: Mapped["Person | None"] = relationship(remote_side=[id], post_update=True)
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -53,6 +52,15 @@ class Person(db.Model):
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
+# --- DECORATORS ---
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- ROUTES ---
 
@@ -79,32 +87,40 @@ def index():
         # Handle Wish Submission
         else:
             concept = request.form["concept"]
-            if not participant:
-                participant = Person(name=name)
-                participant.concept = concept
-                participant.set_password(password)
-                db.session.add(participant)
-                db.session.commit()
-                flash("Your wish has been saved! You can now log in.")
+            # Find the person by name
+            person = db.session.execute(
+                db.select(Person).filter_by(name=name)
+            ).scalar_one_or_none()
+
+            if person:
+                if person.concept:
+                    flash("You have already submitted a wish. Please log in.")
+                else:
+                    person.concept = concept
+                    person.set_password(password)
+                    db.session.commit()
+                    flash("Your wish has been saved! You can now log in.")
             else:
-                flash("You have already submitted a wish. Please log in.")
+                flash("Participant not found.")
+
+
+    # Get list of all participants
+    participants = db.session.execute(db.select(Person)).scalars().all()
 
     # Get list of participants who have not yet submitted a wish
-    submitted_names = db.session.execute(db.select(Person.name)).scalars().all()
-    available_participants = [p for p in PARTICIPANTS if p not in submitted_names]
+    submitted_names = [p.name for p in participants if p.concept]
+    available_participants = [p.name for p in participants if p.name not in submitted_names]
 
     return render_template(
         "index.html",
         available_participants=available_participants,
-        PARTICIPANTS=PARTICIPANTS,
+        PARTICIPANTS=[p.name for p in participants],
     )
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
-    if "user_id" not in session:
-        return redirect(url_for("index"))
-
     user = db.session.get(Person, session["user_id"])
     return render_template("dashboard.html", user=user)
 
@@ -116,15 +132,49 @@ def logout():
     return redirect(url_for("index"))
 
 
+@app.route("/admin", methods=["GET"])
+@login_required
+def admin():
+    participants = db.session.execute(db.select(Person)).scalars().all()
+    return render_template("admin.html", participants=participants)
+
+
+@app.route("/admin/participants/add", methods=["POST"])
+@login_required
+def add_participant():
+    name = request.form["name"]
+    if name:
+        participant = Person(name=name)
+        db.session.add(participant)
+        db.session.commit()
+        flash(f"Participant {name} added.")
+    else:
+        flash("Name cannot be empty.")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/participants/<int:person_id>/delete", methods=["POST"])
+@login_required
+def remove_participant(person_id):
+    participant = db.session.get(Person, person_id)
+    if participant:
+        db.session.delete(participant)
+        db.session.commit()
+        flash(f"Participant {participant.name} removed.")
+    else:
+        flash("Participant not found.")
+    return redirect(url_for("admin"))
+
+
 @app.route("/run-assignment/<secret>")
 def run_assignment(secret):
     if secret != ADMIN_SECRET:
         return "Unauthorized", 403
-
     participants = db.session.execute(db.select(Person)).scalars().all()
-    if len(participants) != len(PARTICIPANTS):
+    total_participants = len(participants)
+    if len([p for p in participants if p.concept]) != total_participants:
         return (
-            f"Cannot run assignment. Only {len(participants)} out of {len(PARTICIPANTS)} have submitted.",
+            f"Cannot run assignment. Only {len([p for p in participants if p.concept])} out of {total_participants} have submitted.",
             400,
         )
 
