@@ -1,46 +1,34 @@
 {% extends 'base.html' %}
-
 {% block title %}Secret Santa{% endblock %}
-
 {% block content %}
     <h1>Secret Santa</h1>
-
-    {% with messages = get_flashed_messages() %} {% if messages %}
-        <div class="alert">{{ messages[0] }}</div>
-    {% endif %} {% endwith %} {% if available_participants %}
-    <div class="form-container">
-        <form method="post">
-            <fieldset>
-                <legend>Submit Your Wish</legend>
-                <label for="name">Select Your Name:</label>
-                <select name="name" id="name" required>
-                    {% for person in available_participants %}
-                    <option value="{{ person }}">{{ person }}</option>
-                    {% endfor %}
-                </select>
-                <label for="password">Create a Password:</label>
-                <input type="password" name="password" required />
-                <label for="wish">Enter Your Wish:</label>
-                <input
-                    type="text"
-                    name="concept"
-                    placeholder="e.g., A nice book"
-                    required
-                />
-                <button type="submit">Save My Wish</button>
-            </fieldset>
-        </form>
-    </div>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}<div class="alert">{{ messages[0] }}</div>{% endif %}
+    {% endwith %}
+    {% if available_participants %}
+        <div class="form-container">
+            <form method="post">
+                <fieldset>
+                    <legend>Submit Your Wish</legend>
+                    <label for="name">Select Your Name:</label>
+                    <select name="name" id="name" required>
+                        {% for person in available_participants %}<option value="{{ person }}">{{ person }}</option>{% endfor %}
+                    </select>
+                    <label for="password">Create a Password:</label>
+                    <input type="password" name="password" required />
+                    <label for="wish">Enter Your Wish:</label>
+                    <input type="text" name="concept" placeholder="e.g., A nice book" required />
+                    <button type="submit">Save My Wish</button>
+                </fieldset>
+            </form>
+        </div>
     {% endif %}
-
     <form method="post">
         <fieldset>
             <legend>Login to See Your Assignment</legend>
             <label for="name">Select Your Name:</label>
             <select name="name" id="name" required>
-                {% for person in PARTICIPANTS %}
-                <option value="{{ person }}">{{ person }}</option>
-                {% endfor %}
+                {% for person in PARTICIPANTS %}<option value="{{ person }}">{{ person }}</option>{% endfor %}
             </select>
             <label for="password">Enter Your Password:</label>
             <input type="password" name="password" required />

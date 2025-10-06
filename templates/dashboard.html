@@ -1,17 +1,20 @@
 {% extends 'base.html' %}
-
 {% block content %}
     <h1>Hello, {{ user.name }}!</h1>
-
     {% if user.assigned_person_name %}
         <div class="assignment">
             <h2>You are the Secret Santa for...</h2>
-            <p><strong>{{ user.receiver.name }}</strong></p>
-            <p>Their wish is: <strong>{{ user.concept }}</strong></p>
+            <p>
+                <strong>{{ user.receiver.name }}</strong>
+            </p>
+            <p>
+                Their wish is: <strong>{{ user.concept }}</strong>
+            </p>
         </div>
     {% else %}
         <p>The assignments have not been run yet. Check back later!</p>
     {% endif %}
-
-    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+    <p>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </p>
 {% endblock %}

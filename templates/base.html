@@ -1,14 +1,16 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>{% block title %}{% endblock %}</title>
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/concrete.css@2.0.0/concrete.css"
-        />
+        <title>
+            {% block title %}{% endblock %}
+        </title>
+        <link rel="stylesheet"
+              href="https://cdn.jsdelivr.net/npm/concrete.css@2.0.0/concrete.css" />
     </head>
     <body>
-        <main>{% block content %}{% endblock %}</main>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
     </body>
 </html>

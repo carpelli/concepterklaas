@@ -9,6 +9,11 @@ dependencies = [
     "flask-sqlalchemy>=3.1.1",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "djlint>=1.34.1",
+]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
@@ -18,3 +23,11 @@ ignore = [
 ]
 
 [tool.ruff.format]
+
+[tool.djlint]
+profile = "jinja"
+
+[dependency-groups]
+dev = [
+    "djlint>=1.36.4",
+]
