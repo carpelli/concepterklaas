@@ -2,7 +2,7 @@
 {% block content %}
     <h1>Hello, {{ user.name }}!</h1>
     <h2>Your concept</h2>
-    <form action="/concept" method="post">
+    <form action="{{ url_for('concept') }}" method="post">
         <textarea name="concept" rows="3" maxlength="1000">{{ user.concept if user.concept }}</textarea>
         <button type="submit">Submit</button>
     </form>

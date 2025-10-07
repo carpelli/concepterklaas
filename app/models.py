@@ -5,14 +5,14 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from . import db
 
 
-class Person(db.Model):
+class User(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     password_hash: Mapped[str | None] = mapped_column(String(128))
     concept: Mapped[str | None] = mapped_column(String(1000))
 
-    receiver_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("person.id"))
-    receiver: Mapped["Person | None"] = relationship(remote_side=[id], post_update=True)
+    receiver_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"))
+    receiver: Mapped["User | None"] = relationship(remote_side=[id], post_update=True)
 
     def __init__(self, name: str) -> None:
         self.name = name

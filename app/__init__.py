@@ -27,14 +27,14 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 from . import routes  # noqa: E402, F401
-from .models import Person, SystemState  # noqa: E402
+from .models import SystemState, User  # noqa: E402
 
 
 def create_database() -> None:
     with app.app_context():
         db.create_all()
-        if not db.session.scalar(db.select(Person)):
-            db.session.add(Person(name="First"))
+        if not db.session.scalar(db.select(User)):
+            db.session.add(User(name="First"))
         if not db.session.get(SystemState, "assignment_run"):
             db.session.add(SystemState(key="assignment_run", value="False"))
         db.session.commit()

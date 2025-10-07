@@ -7,7 +7,7 @@ from flask import flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
 
 from . import ADMIN_SECRET, app, db
-from .models import Person, SystemState
+from .models import SystemState, User
 
 # --- DECORATORS ---
 
@@ -17,7 +17,7 @@ def login_required(f: Callable) -> Callable:
     def decorated_function(*args: Iterable[Any]) -> ResponseReturnValue:
         if "user_id" not in session:
             return redirect(url_for("index"))
-        return f(db.get_or_404(Person, session["user_id"]), *args)
+        return f(db.get_or_404(User, session["user_id"]), *args)
 
     return decorated_function
 
@@ -29,7 +29,7 @@ def login_required(f: Callable) -> Callable:
 def index() -> ResponseReturnValue:
     if "user_id" in session:
         return redirect(url_for("concept"))
-    users = db.session.query(Person).filter(Person.password_hash.is_not(None)).all()
+    users = db.session.query(User).filter(User.password_hash.is_not(None)).all()
     return render_template(
         "index.html",
         users=users,
@@ -40,7 +40,7 @@ def index() -> ResponseReturnValue:
 def login() -> ResponseReturnValue:
     name = request.form["name"]
     password = request.form["password"]
-    user = db.session.query(Person).filter_by(name=name).one_or_none()
+    user = db.session.query(User).filter_by(name=name).one_or_none()
 
     if user and user.check_password(password):
         session["user_id"] = user.id
@@ -54,42 +54,40 @@ def new() -> ResponseReturnValue:
     if request.method == "POST":
         name = request.form["name"]
         password = request.form["password"]
-        person = db.session.query(Person).filter_by(name=name).one_or_none()
+        user = db.session.query(User).filter_by(name=name).one_or_none()
 
-        if person:
-            if person.password_hash:
+        if user:
+            if user.password_hash:
                 flash("You have already created an account. Please log in.")
             else:
-                person.set_password(password)
+                user.set_password(password)
                 db.session.commit()
                 # Log the user in directly after creating the account
-                session["user_id"] = person.id
+                session["user_id"] = user.id
                 return redirect(url_for("concept"))
         else:
             flash("Participant not found.")
 
-    participants = db.session.query(Person).filter_by(password_hash=None).all()
-    available_names = [p.name for p in participants]
+    new_users = db.session.query(User).filter_by(password_hash=None).all()
+    available_names = [p.name for p in new_users]
     return render_template("new.html", available_names=available_names)
 
 
 @app.route("/concept")
 @login_required
-def dashboard(user: Person) -> ResponseReturnValue:
+def dashboard(user: User) -> ResponseReturnValue:
     if not user.concept:
-        return redirect(url_for("concept/change"))
+        return redirect(url_for("concept"))
     return render_template("dashboard.html", user=user)
 
 
 @app.route("/concept/change", methods=["GET", "POST"])
 @login_required
-def concept(user: Person) -> ResponseReturnValue:
+def concept(user: User) -> ResponseReturnValue:
     if request.method == "POST":
         user.concept = request.form["concept"]
         db.session.commit()
         return redirect(url_for("dashboard"))
-    if not user.concept:
-        return redirect(url_for("concept/change"))
     return render_template("change_concept.html", user=user)
 
 
@@ -102,15 +100,15 @@ def logout() -> ResponseReturnValue:
 
 @app.route("/admin", methods=["GET"])
 @login_required
-def admin(_user: Person) -> ResponseReturnValue:
-    participants = db.session.query(Person).all()
+def admin(_user: User) -> ResponseReturnValue:
+    users = db.session.query(User).all()
     assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
-    return render_template("admin.html", participants=participants, assignment_run=assignment_run)
+    return render_template("admin.html", users=users, assignment_run=assignment_run)
 
 
 @app.route("/admin/participants/add", methods=["POST"])
 @login_required
-def add_participant(_user: Person) -> ResponseReturnValue:
+def add_user(_user: User) -> ResponseReturnValue:
     assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
     if assignment_run:
         flash("Cannot add participants after the assignment has been run.")
@@ -118,28 +116,27 @@ def add_participant(_user: Person) -> ResponseReturnValue:
 
     name = request.form["name"]
     if name:
-        participant = Person(name=name)
-        db.session.add(participant)
+        user = User(name=name)
+        db.session.add(user)
         db.session.commit()
-        flash(f"Participant {name} added.")
     else:
         flash("Name cannot be empty.")
     return redirect(url_for("admin"))
 
 
-@app.route("/admin/participants/<int:person_id>/delete", methods=["POST"])
+@app.route("/admin/participants/delete", methods=["POST"])
 @login_required
-def remove_participant(_user: Person, person_id: int) -> ResponseReturnValue:
+def remove_user(_user: User, user_id: int) -> ResponseReturnValue:
     assignment_run = db.get_or_404(SystemState, "assignment_run") == "True"
     if assignment_run:
         flash("Cannot remove participants after the assignment has been run.")
         return redirect(url_for("admin"))
 
-    participant = db.session.get(Person, person_id)
-    if participant:
-        db.session.delete(participant)
+    user = db.session.get(User, user_id)
+    if user:
+        db.session.delete(user)
         db.session.commit()
-        flash(f"Participant {participant.name} removed.")
+        flash(f"Participant {user.name} removed.")
     else:
         flash("Participant not found.")
     return redirect(url_for("admin"))
@@ -154,18 +151,16 @@ def run_assignment(secret) -> ResponseReturnValue:
     if assignment_run:
         return "Assignment has already been run.", 400
 
-    participants = db.session.query(Person).all()
-    total_participants = len(participants)
-    if len([p for p in participants if p.concept]) != total_participants:
+    users = db.session.query(User).all()
+    if len([p for p in users if p.concept]) != len(users):
         return (
-            f"Cannot run assignment. Only {len([p for p in participants if p.concept])} out of {total_participants} have submitted.",
+            f"Cannot run assignment. Only {len([p for p in users if p.concept])} out of {len(users)} have submitted.",
             400,
         )
 
     # The assignment logic
-    shuffled = [*participants]
+    shuffled = [*users]
     random.shuffle(shuffled)
-
     for giver, receiver in zip(shuffled, shuffled[1:] + shuffled[:1], strict=True):
         giver.receiver = receiver
 
