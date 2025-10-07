@@ -102,14 +102,14 @@ def logout() -> ResponseReturnValue:
 @login_required
 def admin(_user: User) -> ResponseReturnValue:
     users = db.session.query(User).all()
-    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    assignment_run = db.get_or_404(SystemState, "assignment_run") == "True"
     return render_template("admin.html", users=users, assignment_run=assignment_run)
 
 
 @app.route("/admin/participants/add", methods=["POST"])
 @login_required
 def add_user(_user: User) -> ResponseReturnValue:
-    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    assignment_run = db.get_or_404(SystemState, "assignment_run") == "True"
     if assignment_run:
         flash("Cannot add participants after the assignment has been run.")
         return redirect(url_for("admin"))
@@ -126,19 +126,14 @@ def add_user(_user: User) -> ResponseReturnValue:
 
 @app.route("/admin/participants/delete", methods=["POST"])
 @login_required
-def remove_user(_user: User, user_id: int) -> ResponseReturnValue:
+def remove_user(_user: User) -> ResponseReturnValue:
     assignment_run = db.get_or_404(SystemState, "assignment_run") == "True"
     if assignment_run:
-        flash("Cannot remove participants after the assignment has been run.")
         return redirect(url_for("admin"))
 
-    user = db.session.get(User, user_id)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
-        flash(f"Participant {user.name} removed.")
-    else:
-        flash("Participant not found.")
+    user = db.get_or_404(User, request.form["user_id"])
+    db.session.delete(user)
+    db.session.commit()
     return redirect(url_for("admin"))
 
 

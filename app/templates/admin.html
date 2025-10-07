@@ -14,14 +14,14 @@
             </tr>
         </thead>
         <tbody>
-            {% for person in participants %}
+            {% for user in users %}
                 <tr>
-                    <td>{{ person.name }}</td>
-                    <td>{{ "Yes" if person.password_hash else "No" }}</td>
-                    <td>{{ "Yes" if person.concept else "No" }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ "Yes" if user.password_hash else "No" }}</td>
+                    <td>{{ "Yes" if user.concept else "No" }}</td>
                     <td>
-                        <form method="post"
-                              action="{{ url_for('remove_participant', person_id=person.id) }}">
+                        <form method="post" action="{{ url_for('remove_user') }}">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
                             <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
                         </form>
                     </td>
@@ -30,7 +30,7 @@
         </tbody>
     </table>
     <h2>Add Participant</h2>
-    <form method="post" action="{{ url_for('add_participant') }}">
+    <form method="post" action="{{ url_for('add_user') }}">
         <label for="name">Name</label>
         <input type="text"
                id="name"
