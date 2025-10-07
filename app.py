@@ -78,7 +78,7 @@ def login_required(f):
 # --- ROUTES ---
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     # If user is already logged in, redirect to dashboard
     if "user_id" in session:
@@ -128,6 +128,44 @@ def index():
         available_participants=available_participants,
         PARTICIPANTS=[p.name for p in participants],
     )
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    name = request.form["name"]
+    password = request.form["password"]
+    participant = db.session.execute(
+        db.select(Person).filter_by(name=name),
+    ).scalar_one_or_none()
+    if participant and participant.check_password(password):
+        session["user_id"] = participant.id
+        return redirect(url_for("dashboard"))
+    flash("Invalid name or password.")
+    return redirect(url_for("index"))
+
+
+@app.route("/new", methods=["GET", "POST"])
+def new():
+    if request.method == "POST":
+        name = request.form["name"]
+        password = request.form["password"]
+        person = db.session.execute(
+            db.select(Person).filter_by(name=name),
+        ).scalar_one_or_none()
+
+        if person:
+            if person.password_hash:
+                flash("You have already created an account. Please log in.")
+            else:
+                person.set_password(password)
+                db.session.commit()
+                return login()
+        else:
+            flash("Participant not found.")
+
+    participants = db.session.execute(db.select(Person)).scalars().all()
+    available_names = [p.name for p in participants if p.password_hash is None]
+    return render_template("new.html", available_names=available_names)
 
 
 @app.route("/dashboard")

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Secret Santa{% endblock %}
+{% block content %}
+    {% if available_names %}
+        <div class="form-container">
+            <form method="post">
+                <fieldset>
+                    <legend>Create an account</legend>
+                    <label for="name">Select Your Name:</label>
+                    <select name="name" id="name" required>
+                        {% for name in available_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                    </select>
+                    <label for="password">Create a Password:</label>
+                    <input type="password" name="password" required />
+                    <button type="submit">Create</button>
+                </fieldset>
+            </form>
+        </div>
+    {% else %}
+        <p>Everyone in the group has made an account already</p>
+    {% endif %}
+{% endblock %}
