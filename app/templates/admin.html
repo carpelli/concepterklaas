@@ -22,7 +22,7 @@
                     <td>
                         <form method="post"
                               action="{{ url_for('remove_participant', person_id=person.id) }}">
-                            <button type="submit" {% if assignment_run %}disabled{% endif %}>Remove</button>
+                            <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
                         </form>
                     </td>
                 </tr>

@@ -10,7 +10,7 @@
             <legend>Login to See Your Assignment</legend>
             <label for="name">Select Your Name:</label>
             <select name="name" id="name" required>
-                {% for person in PARTICIPANTS %}<option value="{{ person }}">{{ person }}</option>{% endfor %}
+                {% for user in users %}<option value="{{ user.name }}">{{ user.name }}</option>{% endfor %}
             </select>
             <label for="password">Enter Your Password:</label>
             <input type="password" name="password" required />

@@ -9,7 +9,7 @@ class Person(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     password_hash: Mapped[str | None] = mapped_column(String(128))
-    concept: Mapped[str | None] = mapped_column(String(200))
+    concept: Mapped[str | None] = mapped_column(String(1000))
 
     receiver_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("person.id"))
     receiver: Mapped["Person | None"] = relationship(remote_side=[id], post_update=True)
