@@ -2,6 +2,9 @@
 {% block title %}Admin{% endblock %}
 {% block content %}
   <h1>Admin</h1>
+  {% if assignment_run %}
+    <p>The assignment has been run. You can no longer add or remove participants.</p>
+  {% endif %}
   <h2>Participants</h2>
   <table>
     <thead>
@@ -20,7 +23,7 @@
           <td>{{ "Yes" if person.concept else "No" }}</td>
           <td>
             <form method="post" action="{{ url_for('remove_participant', person_id=person.id) }}">
-              <button type="submit">Remove</button>
+              <button type="submit" {% if assignment_run %}disabled{% endif %}>Remove</button>
             </form>
           </td>
         </tr>
@@ -31,7 +34,7 @@
   <h2>Add Participant</h2>
   <form method="post" action="{{ url_for('add_participant') }}">
     <label for="name">Name</label>
-    <input type="text" id="name" name="name" required>
-    <button type="submit">Add</button>
+    <input type="text" id="name" name="name" required {% if assignment_run %}disabled{% endif %}>
+    <button type="submit" {% if assignment_run %}disabled{% endif %}>Add</button>
   </form>
 {% endblock %}

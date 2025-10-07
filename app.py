@@ -2,11 +2,11 @@ import random
 from functools import wraps
 from pathlib import Path
 
-from flask import (Flask, flash, redirect, render_template, request, session,
-                   url_for)
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.util import NoneType
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # --- CONFIGURATION ---
@@ -52,7 +52,18 @@ class Person(db.Model):
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
+
+class SystemState(db.Model):
+    key = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(100))
+
+    def __init__(self, key: str, value: str) -> None:
+        self.key = key
+        self.value = value
+
+
 # --- DECORATORS ---
+
 
 def login_required(f):
     @wraps(f)
@@ -60,7 +71,9 @@ def login_required(f):
         if "user_id" not in session:
             return redirect(url_for("index"))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # --- ROUTES ---
 
@@ -89,7 +102,7 @@ def index():
             concept = request.form["concept"]
             # Find the person by name
             person = db.session.execute(
-                db.select(Person).filter_by(name=name)
+                db.select(Person).filter_by(name=name),
             ).scalar_one_or_none()
 
             if person:
@@ -102,7 +115,6 @@ def index():
                     flash("Your wish has been saved! You can now log in.")
             else:
                 flash("Participant not found.")
-
 
     # Get list of all participants
     participants = db.session.execute(db.select(Person)).scalars().all()
@@ -136,12 +148,18 @@ def logout():
 @login_required
 def admin():
     participants = db.session.execute(db.select(Person)).scalars().all()
-    return render_template("admin.html", participants=participants)
+    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    return render_template("admin.html", participants=participants, assignment_run=assignment_run)
 
 
 @app.route("/admin/participants/add", methods=["POST"])
 @login_required
 def add_participant():
+    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    if assignment_run:
+        flash("Cannot add participants after the assignment has been run.")
+        return redirect(url_for("admin"))
+
     name = request.form["name"]
     if name:
         participant = Person(name=name)
@@ -156,6 +174,11 @@ def add_participant():
 @app.route("/admin/participants/<int:person_id>/delete", methods=["POST"])
 @login_required
 def remove_participant(person_id):
+    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    if assignment_run:
+        flash("Cannot remove participants after the assignment has been run.")
+        return redirect(url_for("admin"))
+
     participant = db.session.get(Person, person_id)
     if participant:
         db.session.delete(participant)
@@ -170,6 +193,11 @@ def remove_participant(person_id):
 def run_assignment(secret):
     if secret != ADMIN_SECRET:
         return "Unauthorized", 403
+
+    assignment_run = db.session.get(SystemState, "assignment_run").value == "True"
+    if assignment_run:
+        return "Assignment has already been run.", 400
+
     participants = db.session.execute(db.select(Person)).scalars().all()
     total_participants = len(participants)
     if len([p for p in participants if p.concept]) != total_participants:
@@ -185,14 +213,29 @@ def run_assignment(secret):
     for giver, receiver in zip(shuffled, shuffled[1:] + shuffled[:1], strict=True):
         giver.receiver = receiver
 
+    assignment_state = db.session.get(SystemState, "assignment_run")
+    assignment_state.value = "True"
     db.session.commit()
     return "Assignment complete!", 200
 
 
+def create_database() -> None:
+    with app.app_context():
+        db.create_all()
+        if not db.session.execute(db.select(Person)).scalars().first():
+            db.session.add(Person(name="First"))
+        if not db.session.get(SystemState, "assignment_run"):
+            db.session.add(SystemState(key="assignment_run", value="False"))
+        db.session.commit()
+
+
 # To initialize the database, open a terminal in your project folder and run:
 # > flask shell
-# >>> from app import app, db
+# >>> from app import app, db, SystemState
 # >>> with app.app_context():
 # ...     db.create_all()
+# ...     if not db.session.get(SystemState, 'assignment_run'):
+# ...         db.session.add(SystemState(key='assignment_run', value='False'))
+# ...         db.session.commit()
 # ...
 # >>> exit()
