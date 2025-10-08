@@ -2,9 +2,6 @@
 {% block title %}Concepterklaas{% endblock %}
 {% block content %}
     <h1>Concepterklaas</h1>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}<div class="alert">{{ messages[0] }}</div>{% endif %}
-    {% endwith %}
     <form method="post">
         <fieldset>
             <legend>Create event</legend>

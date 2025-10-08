@@ -51,6 +51,9 @@ class User(db.Model):
         self.name = sanitize(name)
         self.event = event
 
+    def is_admin(self) -> bool:
+        return self is self.event.admin
+
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 

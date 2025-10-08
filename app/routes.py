@@ -66,7 +66,7 @@ def event_index(event_public_id: str) -> ResponseReturnValue:
     users = (
         db.session.query(User).filter(User.event == event, User.password_hash.is_not(None)).all()
     )
-    return render_template("event.html", users=users)
+    return render_template("event.html", users=users, event_public_id=event_public_id)
 
 
 @app.route("/<event_public_id>/new", methods=["GET", "POST"])
@@ -91,7 +91,7 @@ def new(event_public_id: str) -> ResponseReturnValue:
             flash("Participant not found.")
 
     new_users = [user for user in event.users if user.password_hash is None]
-    return render_template("new.html", new_users=new_users)
+    return render_template("new.html", new_users=new_users, event_public_id=event_public_id)
 
 
 @app.route("/login", methods=["POST"])
@@ -103,7 +103,7 @@ def login() -> ResponseReturnValue:
         session["user_id"] = user.id
         return redirect(url_for("dashboard"))
     flash("Invalid name or password.")
-    return redirect(url_for("index"))
+    return redirect(url_for("event_index", event_public_id=request.form["event_public_id"]))
 
 
 @app.route("/concept")
