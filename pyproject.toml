@@ -19,7 +19,7 @@ target-version = "py313"
 line-length = 100
 select = ["ALL"]
 ignore = [
-  "S", "D"
+  "S", "D", "COM"
 ]
 
 [tool.ruff.format]

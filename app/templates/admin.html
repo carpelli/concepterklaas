@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
 {% block content %}
+    hoi{{ assignment_run }}
     <h1>Admin</h1>
     {% if assignment_run %}<p>The assignment has been run. You can no longer add or remove participants.</p>{% endif %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}<p>{{ messages[0] }}</p>{% endif %}
+    {% endwith %}
     <h2>Participants</h2>
     <table>
         <thead>
@@ -29,14 +33,20 @@
             {% endfor %}
         </tbody>
     </table>
-    <h2>Add Participant</h2>
-    <form method="post" action="{{ url_for('add_user') }}">
-        <label for="name">Name</label>
-        <input type="text"
-               id="name"
-               name="name"
-               required
-               {% if assignment_run %}disabled{% endif %}>
-        <button type="submit" {% if assignment_run %}disabled{% endif %}>Add</button>
-    </form>
+    {% if not assignment_run %}
+        <h2>Add Participant</h2>
+        <form method="post" action="{{ url_for('add_user') }}">
+            <label for="name">Name</label>
+            <input type="text"
+                   id="name"
+                   name="name"
+                   required
+                   {% if assignment_run %}disabled{% endif %}>
+            <button type="submit">Add</button>
+        </form>
+        <hr />
+        <form method="post" action="{{ url_for('run_assignment') }}">
+            <button type="submit">Run Assignment</button>
+        </form>
+    {% endif %}
 {% endblock %}

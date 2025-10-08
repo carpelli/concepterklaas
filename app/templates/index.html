@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Secret Santa{% endblock %}
+{% block title %}Concepterklaas{% endblock %}
 {% block content %}
-    <h1>Secret Santa</h1>
+    <h1>Concepterklaas</h1>
     {% with messages = get_flashed_messages() %}
         {% if messages %}<div class="alert">{{ messages[0] }}</div>{% endif %}
     {% endwith %}
-    <form method="post" action="/login"">
+    <form method="post">
         <fieldset>
-            <legend>Login to See Your Assignment</legend>
-            <label for="name">Select Your Name:</label>
-            <select name="name" id="name" required>
-                {% for user in users %}<option value="{{ user.name }}">{{ user.name }}</option>{% endfor %}
-            </select>
-            <label for="password">Enter Your Password:</label>
+            <legend>Create event</legend>
+            <label for="event_name">Event name:</label>
+            <input type="text" name="event_name" maxlength="50" required />
+            <label for="admin_name">Admin name:</label>
+            <input type="text" name="admin_name" maxlength="80" required />
+            <label for="password">Admin password:</label>
             <input type="password" name="password" required />
-            <button type="submit">Login</button>
+            <button type="submit">Create</button>
         </fieldset>
     </form>
 {% endblock %}
