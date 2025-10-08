@@ -1,5 +1,6 @@
 import random
 from collections.abc import Callable, Iterable
+from datetime import UTC, datetime
 from functools import wraps
 from typing import Any
 
@@ -9,8 +10,6 @@ from sqlalchemy import select
 
 from . import app, db
 from .models import Event, User
-
-# --- DECORATORS ---
 
 
 def login_required(f: Callable) -> Callable:
@@ -43,15 +42,13 @@ def before_assignment(f: Callable) -> Callable:
     return decorated_function
 
 
-# --- ROUTES ---
-
-
 @app.route("/", methods=["GET", "POST"])
 def index() -> ResponseReturnValue:
     if request.method == "POST":
         event = Event(request.form["event_name"])
         admin = User(request.form["admin_name"], event)
         event.admin = admin
+        admin.set_password(request.form["password"])
         db.session.add_all([event, admin])
         db.session.commit()
         session["user_id"] = admin.id
@@ -69,7 +66,7 @@ def event_index(event_public_id: str) -> ResponseReturnValue:
     users = (
         db.session.query(User).filter(User.event == event, User.password_hash.is_not(None)).all()
     )
-    return render_template("index.html", users=users)
+    return render_template("event.html", users=users)
 
 
 @app.route("/<event_public_id>/new", methods=["GET", "POST"])
@@ -128,10 +125,11 @@ def concept(user: User) -> ResponseReturnValue:
 
 
 @app.route("/logout")
-def logout() -> ResponseReturnValue:
+@login_required
+def logout(user: User) -> ResponseReturnValue:
     session.pop("user_id", None)
     flash("You have been logged out.")
-    return redirect(url_for("index"))
+    return redirect(url_for("event_index", event_public_id=user.event.public_id))
 
 
 @app.route("/admin", methods=["GET"])
@@ -139,7 +137,7 @@ def logout() -> ResponseReturnValue:
 def admin(admin: User) -> ResponseReturnValue:
     users = admin.event.users
     assignment_run = admin.event.assignment_run_at is not None
-    return render_template("admin.html", users=users, assignment_run=assignment_run)
+    return render_template("admin.html", users=users, admin=admin, assignment_run=assignment_run)
 
 
 @app.route("/admin/participants/add", methods=["POST"])
@@ -180,5 +178,6 @@ def run_assignment(admin: User) -> ResponseReturnValue:
     for giver, receiver in zip(shuffled, shuffled[1:] + shuffled[:1], strict=True):
         giver.receiver = receiver
 
+    admin.event.assignment_run_at = datetime.now(UTC)
     db.session.commit()
     return redirect(url_for("admin"))

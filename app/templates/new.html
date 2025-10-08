@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}Secret Santa{% endblock %}
 {% block content %}
-    {% if users %}
+    {% if new_users %}
         <div class="form-container">
             <form method="post">
                 <fieldset>
                     <legend>Create an account</legend>
                     <label for="name">Select Your Name:</label>
                     <select name="user_id" id="name" required>
-                        {% for user in users %}<option value="{{ user.id }}">{{ user.name }}</option>{% endfor %}
+                        {% for user in new_users %}<option value="{{ user.id }}">{{ user.name }}</option>{% endfor %}
                     </select>
                     <label for="password">Create a Password:</label>
                     <input type="password" name="password" required />

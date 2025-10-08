@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
 {% block content %}
-    hoi{{ assignment_run }}
     <h1>Admin</h1>
     {% if assignment_run %}<p>The assignment has been run. You can no longer add or remove participants.</p>{% endif %}
     {% with messages = get_flashed_messages() %}
@@ -24,10 +23,12 @@
                     <td>{{ "Yes" if user.password_hash else "No" }}</td>
                     <td>{{ "Yes" if user.concept else "No" }}</td>
                     <td>
-                        <form method="post" action="{{ url_for('remove_user') }}">
-                            <input type="hidden" name="user_id" value="{{ user.id }}">
-                            <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
-                        </form>
+                        {% if not user is sameas(admin) %}
+                            <form method="post" action="{{ url_for('remove_user') }}">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
@@ -37,11 +38,7 @@
         <h2>Add Participant</h2>
         <form method="post" action="{{ url_for('add_user') }}">
             <label for="name">Name</label>
-            <input type="text"
-                   id="name"
-                   name="name"
-                   required
-                   {% if assignment_run %}disabled{% endif %}>
+            <input type="text" id="name" name="name" required>
             <button type="submit">Add</button>
         </form>
         <hr />
