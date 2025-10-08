@@ -135,9 +135,13 @@ def logout(user: User) -> ResponseReturnValue:
 @app.route("/admin", methods=["GET"])
 @admin_required
 def admin(admin: User) -> ResponseReturnValue:
-    users = admin.event.users
-    assignment_run = admin.event.assignment_run_at is not None
-    return render_template("admin.html", users=users, admin=admin, assignment_run=assignment_run)
+    return render_template(
+        "admin.html",
+        users=admin.event.users,
+        admin=admin,
+        assignment_run=admin.event.assignment_run_at is not None,
+        can_run_assignment=all(user.concept for user in admin.event.users),
+    )
 
 
 @app.route("/admin/participants/add", methods=["POST"])

@@ -41,9 +41,11 @@
             <input type="text" id="name" name="name" required>
             <button type="submit">Add</button>
         </form>
-        <hr />
-        <form method="post" action="{{ url_for('run_assignment') }}">
-            <button type="submit">Run Assignment</button>
-        </form>
+        {% if can_run_assignment %}
+            <hr />
+            <form method="post" action="{{ url_for('run_assignment') }}">
+                <button type="submit">Run Assignment</button>
+            </form>
+        {% endif %}
     {% endif %}
 {% endblock %}
