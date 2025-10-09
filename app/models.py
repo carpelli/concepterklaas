@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db
@@ -37,7 +37,7 @@ class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     event_id: Mapped[int] = mapped_column(ForeignKey("event.id"))
     name: Mapped[str] = mapped_column(String(80))
-    password_hash: Mapped[str | None] = mapped_column(String(128))
+    password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))  # to prevent leaking
     concept: Mapped[str | None] = mapped_column(String(1000))
     receiver_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
 
