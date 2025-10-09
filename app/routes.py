@@ -155,7 +155,7 @@ def add_user(admin: User) -> ResponseReturnValue:
         db.session.commit()
     else:
         flash("Name cannot be empty")
-    return redirect(url_for("admin"))
+    return redirect(url_for("admin", _anchor="name"))
 
 
 @app.route("/admin/participants/delete", methods=["POST"])
