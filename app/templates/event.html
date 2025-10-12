@@ -11,24 +11,44 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Concept Submitted</th>
+                <th>Concept</th>
                 <th>Magic Link</th>
-                <th>Remove</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             {% for p in participants %}
                 <tr>
                     <td>{{ p.name }}</td>
-                    <td>{{ "Yes" if p.concept else "No" }}</td>
+                    <td>
+                        {% set x = heroicon_outline("x-mark", width="1em", height="1em", style="display: block") %}
+                        {% set check = heroicon_outline("check", width="1em", height="1em", style="display: block") %}
+                        {{ check if p.concept else x }}
+                    </td>
                     <td>
                         <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">Link</a>
                     </td>
                     <td>
                         <form method="post"
-                              action="{{ url_for('remove_participant', event_id=event.id) }}">
+                              action="{{ url_for('remove_participant', event_id=event.id) }}"
+                              onsubmit="return confirm('Are you sure you want to remove this participant?');"
+                              style="display: inline;
+                                     margin: 0;
+                                     padding: 0;
+                                     vertical-align: middle">
                             <input type="hidden" name="participant_id" value="{{ p.id }}">
-                            <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
+                            <button type="submit"
+                                    class="remove_button"
+                                    {% if assignment_run %}disabled{% endif %}
+                                    style="background: none;
+                                           border: none;
+                                           padding: 0;
+                                           margin: 0;
+                                           cursor: pointer;
+                                           display: inline-flex;
+                                           align-items: center">
+                                {{ heroicon_outline("trash", width="1em", height="1em", style="position: relative; top: -1px;") }}
+                            </button>
                         </form>
                     </td>
                 </tr>

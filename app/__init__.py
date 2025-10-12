@@ -2,11 +2,25 @@ from pathlib import Path
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from heroicons.jinja import (
+    heroicon_micro,
+    heroicon_mini,
+    heroicon_outline,
+    heroicon_solid,
+)
 from sqlalchemy.orm import DeclarativeBase
 
 # IMPORTANT: Change this secret key!
 # You can generate one using: python -c 'import os; print(os.urandom(16))'
 app = Flask(__name__)
+app.jinja_env.globals.update(
+    {
+        "heroicon_micro": heroicon_micro,
+        "heroicon_mini": heroicon_mini,
+        "heroicon_outline": heroicon_outline,
+        "heroicon_solid": heroicon_solid,
+    }
+)
 app.config["SECRET_KEY"] = "a_really_strong_secret_key_goes_here"
 
 # IMPORTANT: Change this admin secret to protect the assignment route!
