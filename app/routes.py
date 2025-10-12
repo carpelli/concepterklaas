@@ -1,5 +1,5 @@
 import random
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import wraps
 from typing import Any
@@ -7,6 +7,7 @@ from typing import Any
 from flask import flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
 from sqlalchemy import select
+from sqlalchemy.exc import NoResultFound
 
 from . import app, db
 from .models import Event, Host, Participant
@@ -14,26 +15,27 @@ from .models import Event, Host, Participant
 
 def login_required(f: Callable) -> Callable:
     @wraps(f)
-    def decorated_function(*args: Iterable[Any], **kwargs) -> ResponseReturnValue:
-        print("called login_required")
+    def decorated(**kwargs: dict[str, Any]) -> ResponseReturnValue:
         if "host_id" not in session:
             return redirect(url_for("index")), 401
-        return f(db.get_or_404(Host, session["host_id"]), *args, **kwargs)
+        host = db.get_or_404(Host, session["host_id"])
+        if "event_id" in kwargs:
+            event = db.get_or_404(Event, kwargs["event_id"])
+            del kwargs["event_id"]
+            return f(host, event, **kwargs)
+        return f(host, **kwargs)
 
-    return decorated_function
+    return decorated
 
 
-def admin_required(f: Callable) -> Callable:
+def before_assignment(f: Callable) -> Callable:
     @wraps(f)
-    def decorated_function(host: Host, *args: Iterable[Any], **kwargs) -> ResponseReturnValue:
-        print("called admin_required")
-        event_id = request.view_args["event_public_id"]
-        event = db.one_or_404(select(Event).where(Event.public_id == event_id))
-        if event.admin != host:
-            return "not admin", 403
-        return f(host, *args, **kwargs)
+    def decorated(host: Host, event: Event, **kwargs: dict[str, Any]) -> ResponseReturnValue:
+        if event.assignment_run_at is not None:
+            return "assignment already run", 409
+        return f(host, event, **kwargs)
 
-    return login_required(decorated_function)
+    return decorated
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -60,22 +62,23 @@ def login() -> ResponseReturnValue:
     return redirect(url_for("index"))
 
 
-@app.route("/<event_public_id>/<magic_token>")
-def participant_view(event_public_id: str, magic_token: str) -> ResponseReturnValue:
+@app.route("/events/<event_slug>/<participant_slug>/<token>")
+def participant_view(event_slug: str, participant_slug: str, token: str) -> ResponseReturnValue:
     participant = db.one_or_404(
         select(Participant).where(
-            Participant.magic_token == magic_token,
-            Participant.event.has(public_id=event_public_id),
+            Participant.token == token,
+            Participant.slug == participant_slug,
+            Participant.event.has(slug=event_slug),
         )
     )
     if not participant.concept:
         return render_template("change_concept.html", participant=participant)
-    return render_template("dashboard.html", user=participant)
+    return render_template("dashboard.html", participant=participant)
 
 
-@app.route("/<magic_token>/concept", methods=["POST"])
-def concept(magic_token: str) -> ResponseReturnValue:
-    participant = db.one_or_404(select(Participant).where(Participant.magic_token == magic_token))
+@app.route("/<token>/concept", methods=["POST"])
+def concept(token: str) -> ResponseReturnValue:
+    participant = db.one_or_404(select(Participant).where(Participant.token == token))
     if participant.event.assignment_run_at is not None:
         return "assignment already run", 409
     participant.concept = request.form["concept"]
@@ -83,8 +86,9 @@ def concept(magic_token: str) -> ResponseReturnValue:
     return redirect(
         url_for(
             "participant_view",
-            event_public_id=participant.event.public_id,
-            magic_token=participant.magic_token,
+            event_slug=participant.event.slug,
+            participant_slug=participant.slug,
+            token=participant.token,
         )
     )
 
@@ -100,18 +104,16 @@ def logout() -> ResponseReturnValue:
 @login_required
 def admin(host: Host) -> ResponseReturnValue:
     if request.method == "POST":
-        event = Event(name=request.form["event_name"])
-        event.admin = host
+        event = Event(name=request.form["event_name"], host=host)
         db.session.add(event)
         db.session.commit()
         return redirect(url_for("admin"))
     return render_template("admin.html", host=host)
 
 
-@app.route("/<event_public_id>", methods=["GET"])
-@admin_required
-def event_detail(host: Host, event_public_id: str) -> ResponseReturnValue:
-    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
+@app.route("/admin/<event_id>", methods=["GET"])
+@login_required
+def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
     return render_template(
         "event.html",
         event=event,
@@ -121,44 +123,38 @@ def event_detail(host: Host, event_public_id: str) -> ResponseReturnValue:
     )
 
 
-@app.route("/<event_public_id>/participants/add", methods=["POST"])
-@admin_required
-def add_participant(host: Host, event_public_id: str) -> ResponseReturnValue:
-    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
-    if event.assignment_run_at is not None:
-        return "assignment already run", 409
-
+@app.route("/admin/<event_id>/participants/add", methods=["POST"])
+@login_required
+@before_assignment
+def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
     name = request.form["name"]
-    if name:
-        participant = Participant(name=name, event=event)
+    participant = Participant(name=name, event=event)
+    if participant.slug:
         db.session.add(participant)
         db.session.commit()
     else:
-        flash("Name cannot be empty")
-    return redirect(url_for("event_detail", event_public_id=event_public_id, _anchor="name"))
+        flash("name cannot be empty")
+    return redirect(url_for("event_detail", event_id=event.id, _anchor="name"))
 
 
-@app.route("/<event_public_id>/participants/delete", methods=["POST"])
-@admin_required
-def remove_participant(_host: Host, event_public_id: str) -> ResponseReturnValue:
-    participant = db.get_or_404(Participant, request.form["participant_id"])
-    if participant.event.public_id != event_public_id:
-        return "participant not in event", 400
-    if participant.event.assignment_run_at is not None:
-        return "assignment already run", 409
-
+@app.route("/admin/<event_id>/participants/delete", methods=["POST"])
+@login_required
+@before_assignment
+def remove_participant(_host: Host, event: Event) -> ResponseReturnValue:
+    try:
+        participant = db.session.get_one(Participant, request.form["participant_id"])
+        assert participant.event == event
+    except (NoResultFound, AssertionError):
+        return "invalid participant id", 400
     db.session.delete(participant)
     db.session.commit()
-    return redirect(url_for("event_detail", event_public_id=event_public_id))
+    return redirect(url_for("event_detail", event_id=event.id))
 
 
-@app.route("/<event_public_id>/assign", methods=["POST"])
-@admin_required
-def run_assignment(host: Host, event_public_id: str) -> ResponseReturnValue:
-    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
-    if event.assignment_run_at is not None:
-        return "assignment already run", 409
-
+@app.route("/admin/<event_id>/assign", methods=["POST"])
+@login_required
+@before_assignment
+def run_assignment(_host: Host, event: Event) -> ResponseReturnValue:
     participants = event.participants
     if any(not p.concept for p in participants):
         return "not all participants have a concept", 409
@@ -171,4 +167,4 @@ def run_assignment(host: Host, event_public_id: str) -> ResponseReturnValue:
 
     event.assignment_run_at = datetime.now(UTC)
     db.session.commit()
-    return redirect(url_for("event_detail", event_public_id=event_public_id))
+    return redirect(url_for("event_detail", event_id=event.id))

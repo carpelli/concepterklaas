@@ -2,7 +2,7 @@
 {% block content %}
     <h1>Hello, {{ participant.name }}!</h1>
     <h2>Your concept</h2>
-    <form action="{{ url_for('concept', magic_token=participant.magic_token) }}" method="post">
+    <form action="{{ url_for('concept', token=participant.token) }}" method="post">
         <textarea name="concept" rows="3" maxlength="1000">{{ participant.concept if participant.concept }}</textarea>
         <button type="submit">Submit</button>
     </form>

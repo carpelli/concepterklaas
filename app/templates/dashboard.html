@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Hello, {{ user.name }}!</h1>
-    {% if user.receiver %}
+    <h1>Hello, {{ participant.name }}!</h1>
+    {% if participant.receiver %}
         <h2>Your assigned concept.</h2>
         <blockquote>
-            {{ user.receiver.concept }}
+            {{ participant.receiver.concept }}
         </blockquote>
     {% endif %}
     <h2>Your concept</h2>
     <blockquote>
-        {{ user.concept }}
+        {{ participant.concept }}
     </blockquote>
 {% endblock %}
