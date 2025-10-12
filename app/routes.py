@@ -9,179 +9,166 @@ from flask.typing import ResponseReturnValue
 from sqlalchemy import select
 
 from . import app, db
-from .models import Event, User
+from .models import Event, Host, Participant
 
 
 def login_required(f: Callable) -> Callable:
     @wraps(f)
-    def decorated_function(*args: Iterable[Any]) -> ResponseReturnValue:
-        if "user_id" not in session:
+    def decorated_function(*args: Iterable[Any], **kwargs) -> ResponseReturnValue:
+        print("called login_required")
+        if "host_id" not in session:
             return redirect(url_for("index")), 401
-        return f(db.get_or_404(User, session["user_id"]), *args)
+        return f(db.get_or_404(Host, session["host_id"]), *args, **kwargs)
 
     return decorated_function
 
 
 def admin_required(f: Callable) -> Callable:
     @wraps(f)
-    def decorated_function(user: User, *args: Iterable[Any]) -> ResponseReturnValue:
-        if user.event.admin != user:
+    def decorated_function(host: Host, *args: Iterable[Any], **kwargs) -> ResponseReturnValue:
+        print("called admin_required")
+        event_id = request.view_args["event_public_id"]
+        event = db.one_or_404(select(Event).where(Event.public_id == event_id))
+        if event.admin != host:
             return "not admin", 403
-        return f(user, *args)
+        return f(host, *args, **kwargs)
 
     return login_required(decorated_function)
-
-
-def before_assignment(f: Callable) -> Callable:
-    @wraps(f)
-    def decorated_function(user: User, *args: Iterable[Any]) -> ResponseReturnValue:
-        if user.event.assignment_run_at is not None:
-            return "assignment already run", 409
-        return f(user, *args)
-
-    return decorated_function
 
 
 @app.route("/", methods=["GET", "POST"])
 def index() -> ResponseReturnValue:
     if request.method == "POST":
-        event = Event(request.form["event_name"])
-        admin = User(request.form["admin_name"], event)
-        event.admin = admin
-        admin.set_password(request.form["password"])
-        db.session.add_all([event, admin])
+        host = Host(email=request.form["email"])
+        host.set_password(request.form["password"])
+        db.session.add(host)
         db.session.commit()
-        session["user_id"] = admin.id
+        session["host_id"] = host.id
         return redirect(url_for("admin"))
-    if "user_id" in session:
-        return redirect(url_for("dashboard"))
+    if "host_id" in session:
+        return redirect(url_for("admin"))
     return render_template("index.html")
-
-
-@app.route("/<event_public_id>")
-def event_index(event_public_id: str) -> ResponseReturnValue:
-    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
-    if "user_id" in session:
-        return redirect(url_for("dashboard"))
-    users = (
-        db.session.query(User).filter(User.event == event, User.password_hash.is_not(None)).all()
-    )
-    return render_template("event.html", users=users, event_public_id=event_public_id)
-
-
-@app.route("/<event_public_id>/new", methods=["GET", "POST"])
-def new(event_public_id: str) -> ResponseReturnValue:
-    # event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
-    event = db.session.query(Event).filter_by(public_id=event_public_id).one()
-
-    if request.method == "POST":
-        user = db.get_or_404(User, request.form["user_id"])
-        password = request.form["password"]
-
-        if user:
-            if user.password_hash:
-                flash("You have already created an account. Please log in.")
-            else:
-                user.set_password(password)
-                db.session.commit()
-                # Log the user in directly after creating the account
-                session["user_id"] = user.id
-                return redirect(url_for("dashboard"))
-        else:
-            flash("Participant not found.")
-
-    new_users = [user for user in event.users if user.password_hash is None]
-    return render_template("new.html", new_users=new_users, event_public_id=event_public_id)
 
 
 @app.route("/login", methods=["POST"])
 def login() -> ResponseReturnValue:
-    password = request.form["password"]
-    user = db.session.get(User, request.form["user_id"])
-
-    if user and user.check_password(password):
-        session["user_id"] = user.id
-        return redirect(url_for("dashboard"))
-    flash("Invalid name or password.")
-    return redirect(url_for("event_index", event_public_id=request.form["event_public_id"]))
+    host = db.one_or_404(select(Host).where(Host.email == request.form["email"]))
+    if host.check_password(request.form["password"]):
+        session["host_id"] = host.id
+        return redirect(url_for("admin"))
+    flash("Invalid email or password.")
+    return redirect(url_for("index"))
 
 
-@app.route("/concept")
-@login_required
-def dashboard(user: User) -> ResponseReturnValue:
-    if not user.concept:
-        return redirect(url_for("concept"))
-    return render_template("dashboard.html", user=user)
+@app.route("/<event_public_id>/<magic_token>")
+def participant_view(event_public_id: str, magic_token: str) -> ResponseReturnValue:
+    participant = db.one_or_404(
+        select(Participant).where(
+            Participant.magic_token == magic_token,
+            Participant.event.has(public_id=event_public_id),
+        )
+    )
+    if not participant.concept:
+        return render_template("change_concept.html", participant=participant)
+    return render_template("dashboard.html", user=participant)
 
 
-@app.route("/concept/change", methods=["GET", "POST"])
-@login_required
-def concept(user: User) -> ResponseReturnValue:
-    if request.method == "POST":
-        user.concept = request.form["concept"]
-        db.session.commit()
-        return redirect(url_for("dashboard"))
-    return render_template("change_concept.html", user=user)
-
-
-@app.route("/logout")
-@login_required
-def logout(user: User) -> ResponseReturnValue:
-    session.pop("user_id", None)
-    flash("You have been logged out.")
-    return redirect(url_for("event_index", event_public_id=user.event.public_id))
-
-
-@app.route("/admin", methods=["GET"])
-@admin_required
-def admin(admin: User) -> ResponseReturnValue:
-    return render_template(
-        "admin.html",
-        users=admin.event.users,
-        admin=admin,
-        assignment_run=admin.event.assignment_run_at is not None,
-        can_run_assignment=all(user.concept for user in admin.event.users),
+@app.route("/<magic_token>/concept", methods=["POST"])
+def concept(magic_token: str) -> ResponseReturnValue:
+    participant = db.one_or_404(select(Participant).where(Participant.magic_token == magic_token))
+    if participant.event.assignment_run_at is not None:
+        return "assignment already run", 409
+    participant.concept = request.form["concept"]
+    db.session.commit()
+    return redirect(
+        url_for(
+            "participant_view",
+            event_public_id=participant.event.public_id,
+            magic_token=participant.magic_token,
+        )
     )
 
 
-@app.route("/admin/participants/add", methods=["POST"])
+@app.route("/logout")
+def logout() -> ResponseReturnValue:
+    session.pop("host_id", None)
+    flash("You have been logged out.")
+    return redirect(url_for("index"))
+
+
+@app.route("/admin", methods=["GET", "POST"])
+@login_required
+def admin(host: Host) -> ResponseReturnValue:
+    if request.method == "POST":
+        event = Event(name=request.form["event_name"])
+        event.admin = host
+        db.session.add(event)
+        db.session.commit()
+        return redirect(url_for("admin"))
+    return render_template("admin.html", host=host)
+
+
+@app.route("/<event_public_id>", methods=["GET"])
 @admin_required
-@before_assignment
-def add_user(admin: User) -> ResponseReturnValue:
+def event_detail(host: Host, event_public_id: str) -> ResponseReturnValue:
+    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
+    return render_template(
+        "event.html",
+        event=event,
+        participants=event.participants,
+        assignment_run=event.assignment_run_at is not None,
+        can_run_assignment=all(p.concept for p in event.participants),
+    )
+
+
+@app.route("/<event_public_id>/participants/add", methods=["POST"])
+@admin_required
+def add_participant(host: Host, event_public_id: str) -> ResponseReturnValue:
+    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
+    if event.assignment_run_at is not None:
+        return "assignment already run", 409
+
     name = request.form["name"]
     if name:
-        user = User(name=name, event=admin.event)
-        db.session.add(user)
+        participant = Participant(name=name, event=event)
+        db.session.add(participant)
         db.session.commit()
     else:
         flash("Name cannot be empty")
-    return redirect(url_for("admin", _anchor="name"))
+    return redirect(url_for("event_detail", event_public_id=event_public_id, _anchor="name"))
 
 
-@app.route("/admin/participants/delete", methods=["POST"])
+@app.route("/<event_public_id>/participants/delete", methods=["POST"])
 @admin_required
-@before_assignment
-def remove_user(_admin: User) -> ResponseReturnValue:
-    user = db.get_or_404(User, request.form["user_id"])
-    db.session.delete(user)
+def remove_participant(_host: Host, event_public_id: str) -> ResponseReturnValue:
+    participant = db.get_or_404(Participant, request.form["participant_id"])
+    if participant.event.public_id != event_public_id:
+        return "participant not in event", 400
+    if participant.event.assignment_run_at is not None:
+        return "assignment already run", 409
+
+    db.session.delete(participant)
     db.session.commit()
-    return redirect(url_for("admin"))
+    return redirect(url_for("event_detail", event_public_id=event_public_id))
 
 
-@app.route("/admin/assign", methods=["POST"])
+@app.route("/<event_public_id>/assign", methods=["POST"])
 @admin_required
-@before_assignment
-def run_assignment(admin: User) -> ResponseReturnValue:
-    users = admin.event.users
-    if any(not user.concept for user in users):
-        return "not all users have a concept", 409
+def run_assignment(host: Host, event_public_id: str) -> ResponseReturnValue:
+    event = db.one_or_404(select(Event).where(Event.public_id == event_public_id))
+    if event.assignment_run_at is not None:
+        return "assignment already run", 409
+
+    participants = event.participants
+    if any(not p.concept for p in participants):
+        return "not all participants have a concept", 409
 
     # The assignment logic
-    shuffled = [*users]
+    shuffled = [*participants]
     random.shuffle(shuffled)
     for giver, receiver in zip(shuffled, shuffled[1:] + shuffled[:1], strict=True):
         giver.receiver = receiver
 
-    admin.event.assignment_run_at = datetime.now(UTC)
+    event.assignment_run_at = datetime.now(UTC)
     db.session.commit()
-    return redirect(url_for("admin"))
+    return redirect(url_for("event_detail", event_public_id=event_public_id))

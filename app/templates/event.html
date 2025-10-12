@@ -1,21 +1,51 @@
-{% extends 'base.html' %}
-{% block title %}Secret Santa{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
 {% block content %}
-    <h1>Secret Santa</h1>
-    <form method="post" action="/login"">
-        <fieldset>
-            <legend>Login to See Your Assignment</legend>
-            <label for="name">Select Your Name:</label>
-            <select name="user_id" id="name" required>
-                {% for user in users %}<option value="{{ user.id }}">{{ user.name }}</option>{% endfor %}
-            </select>
-            <label for="password">Enter Your Password:</label>
-            <input type="password" name="password" required />
-            <input type="hidden" name="event_public_id" value="{{ event_public_id }}">
-            <button type="submit">Login</button>
-        </fieldset>
-        <p>
-            <a href="{{ url_for('new', event_public_id=event_public_id) }}">New user</a>
-        </p>
-    </form>
+    <h1>{{ event.name }}</h1>
+    {% if assignment_run %}<p>The assignment has been run. You can no longer add or remove participants.</p>{% endif %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}<p>{{ messages[0] }}</p>{% endif %}
+    {% endwith %}
+    <h2>Participants</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Concept Submitted</th>
+                <th>Magic Link</th>
+                <th>Remove</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in participants %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td>{{ "Yes" if p.concept else "No" }}</td>
+                    <td><a href="{{ url_for('participant_view', event_public_id=event.public_id, magic_token=p.magic_token) }}">Link</a></td>
+                    <td>
+                        <form method="post" action="{{ url_for('remove_participant', event_public_id=event.public_id) }}">
+                            <input type="hidden" name="participant_id" value="{{ p.id }}">
+                            <button type="submit" {% if assignment_run %}disabled{% endif %}>X</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if not assignment_run %}
+        <h2>Add Participant</h2>
+        <form method="post" action="{{ url_for('add_participant', event_public_id=event.public_id) }}">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+            <button type="submit">Add</button>
+        </form>
+        {% if can_run_assignment %}
+            <hr />
+            <form method="post" action="{{ url_for('run_assignment', event_public_id=event.public_id) }}">
+                <button type="submit">Run Assignment</button>
+            </form>
+        {% endif %}
+    {% endif %}
+    <hr />
+    <p><a href="{{ url_for('admin') }}">Back to Admin</a></p>
 {% endblock %}

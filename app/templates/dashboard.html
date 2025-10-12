@@ -11,12 +11,4 @@
     <blockquote>
         {{ user.concept }}
     </blockquote>
-    <p>
-        <a href="{{ url_for('concept') }}">Change</a>
-    </p>
-    <hr />
-    <p>
-        <a href="{{ url_for('logout') }}">Logout</a>
-        {% if user.is_admin() %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
-    </p>
 {% endblock %}

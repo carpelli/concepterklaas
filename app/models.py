@@ -14,17 +14,15 @@ class Event(db.Model):
     public_id: Mapped[str] = mapped_column(String(70), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(50))
     message: Mapped[str | None] = mapped_column(String(1000))
-    admin_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"))
+    admin_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
     assignment_run_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    admin: Mapped["User"] = relationship(
-        back_populates="event", foreign_keys=[admin_id], post_update=True
-    )
-    users: Mapped[list["User"]] = relationship(
-        back_populates="event", foreign_keys="[User.event_id]", cascade="all, delete-orphan"
+    admin: Mapped["Host"] = relationship(back_populates="events")
+    participants: Mapped[list["Participant"]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
     )
 
     def __init__(self, name: str) -> None:
@@ -33,26 +31,18 @@ class Event(db.Model):
         self.public_id = f"{slugify(name)}-{token}"
 
 
-class User(db.Model):
+class Host(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey("event.id"))
-    name: Mapped[str] = mapped_column(String(80))
-    password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))  # to prevent leaking
-    concept: Mapped[str | None] = mapped_column(String(1000))
-    receiver_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
+    email: Mapped[str] = mapped_column(String(80), unique=True)
+    password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
-    event: Mapped[Event] = relationship(back_populates="users", foreign_keys=[event_id])
-    receiver: Mapped["User | None"] = relationship(remote_side=[id], post_update=True)
+    events: Mapped[list["Event"]] = relationship(back_populates="admin")
 
-    def __init__(self, name: str, event: Event) -> None:
-        self.name = sanitize(name)
-        self.event = event
-
-    def is_admin(self) -> bool:
-        return self is self.event.admin
+    def __init__(self, email: str) -> None:
+        self.email = email
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -61,3 +51,23 @@ class User(db.Model):
         if self.password_hash is None:
             return False
         return check_password_hash(self.password_hash, password)
+
+
+class Participant(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("event.id"))
+    name: Mapped[str] = mapped_column(String(80))
+    magic_token: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    concept: Mapped[str | None] = mapped_column(String(1000))
+    receiver_id: Mapped[int | None] = mapped_column(ForeignKey("participant.id"))
+
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="participants")
+    receiver: Mapped["Participant | None"] = relationship(remote_side=[id], post_update=True)
+
+    def __init__(self, name: str, event: "Event") -> None:
+        self.name = sanitize(name)
+        self.event = event
+        self.magic_token = secrets.token_urlsafe(24)

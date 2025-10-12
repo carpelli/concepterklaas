@@ -1,12 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Hello, {{ user.name }}!</h1>
+    <h1>Hello, {{ participant.name }}!</h1>
     <h2>Your concept</h2>
-    <form action="{{ url_for('concept') }}" method="post">
-        <textarea name="concept" rows="3" maxlength="1000">{{ user.concept if user.concept }}</textarea>
+    <form action="{{ url_for('concept', magic_token=participant.magic_token) }}" method="post">
+        <textarea name="concept" rows="3" maxlength="1000">{{ participant.concept if participant.concept }}</textarea>
         <button type="submit">Submit</button>
     </form>
-    <p>
-        <a href="{{ url_for('logout') }}">Logout</a>
-    </p>
 {% endblock %}
