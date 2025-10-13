@@ -21,8 +21,8 @@
                 <tr>
                     <td>{{ p.name }}</td>
                     <td>
-                        {% set x = heroicon_outline("x-mark", width="1em", height="1em", style="display: block") %}
-                        {% set check = heroicon_outline("check", width="1em", height="1em", style="display: block") %}
+                        {% set x = heroicon_outline("x-mark", width="1em", height="1em", stroke_width="2", style="display: block") %}
+                        {% set check = heroicon_outline("check", width="1em", height="1em", stroke_width="2", style="display: block") %}
                         {{ check if p.concept else x }}
                     </td>
                     <td>
@@ -31,7 +31,7 @@
                     <td>
                         <form method="post"
                               action="{{ url_for('remove_participant', event_id=event.id) }}"
-                              onsubmit="return confirm('Are you sure you want to remove this participant?');"
+                              {% if p.concept %}onsubmit="return confirm('Are you sure you want to remove this participant? They have already submitted a concept');"{% endif %}
                               style="display: inline;
                                      margin: 0;
                                      padding: 0;
@@ -41,13 +41,14 @@
                                     class="remove_button"
                                     {% if assignment_run %}disabled{% endif %}
                                     style="background: none;
-                                           border: none;
-                                           padding: 0;
-                                           margin: 0;
+                                           padding: 0.1rem;
+                                           margin-right: 0.3rem;
+                                           /*border: none;
+                                           */ box-shadow: none;
                                            cursor: pointer;
                                            display: inline-flex;
                                            align-items: center">
-                                {{ heroicon_outline("trash", width="1em", height="1em", style="position: relative; top: -1px;") }}
+                                {{ heroicon_solid("trash", width="1em", height="1em") }}
                             </button>
                         </form>
                     </td>
@@ -55,13 +56,20 @@
             {% endfor %}
         </tbody>
     </table>
+    <p></p>
     {% if not assignment_run %}
-        <h2>Add Participant</h2>
         <form method="post"
               action="{{ url_for('add_participant', event_id=event.id) }}">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" required>
-            <button type="submit">Add</button>
+            <label for="name">Add Participant</label>
+            <div style="display: flex; align-items: flex-start;">
+                <input type="text"
+                       id="name"
+                       name="name"
+                       required
+                       style="flex-grow: 1;
+                              margin-right: 8px">
+                <button type="submit">Add</button>
+            </div>
         </form>
         {% if can_run_assignment %}
             <hr />
