@@ -127,10 +127,8 @@ def admin(host: Host) -> ResponseReturnValue:
 @login_required
 def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
     try:
-        me = (
-            db.session.query(Participant).filter_by(id=session["participant_id"], event=event).one()
-        )
-    except (KeyError, NoResultFound):
+        me = db.session.get(Participant, session["participant_id"])
+    except KeyError:
         me = None
     return render_template(
         "event.html",

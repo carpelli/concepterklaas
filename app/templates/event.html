@@ -13,7 +13,7 @@
                 <th>Name</th>
                 <th>Concept</th>
                 <th>Link</th>
-                <th></th>
+                {% if not assignment_run %}<th class="right"></th>{% endif %}
             </tr>
         </thead>
         <tbody>
@@ -30,18 +30,20 @@
                     <td>
                         <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">Link</a>
                     </td>
-                    <td>
-                        <form method="post"
-                              action="{{ url_for('remove_participant', event_id=event.id) }}"
-                              {% if p.concept %}onsubmit="return confirm('Are you sure you want to remove this participant? They have already submitted a concept');"{% endif %}>
-                            <input type="hidden" name="participant_id" value="{{ p.id }}">
-                            <button type="submit"
-                                    class="remove_button"
-                                    {% if assignment_run %}disabled{% endif %}>
-                                {{ heroicon_solid("trash", width="1em", height="1em") }}
-                            </button>
-                        </form>
-                    </td>
+                    {% if not assignment_run %}
+                        <td class="right">
+                            <form method="post"
+                                  action="{{ url_for('remove_participant', event_id=event.id) }}"
+                                  {% if p.concept %}onsubmit="return confirm('Are you sure you want to remove this participant? They have already submitted a concept');"{% endif %}>
+                                <input type="hidden" name="participant_id" value="{{ p.id }}">
+                                <button type="submit"
+                                        class="remove_button"
+                                        {% if assignment_run %}disabled{% endif %}>
+                                    {{ heroicon_solid("trash", width="1em", height="1em") }}
+                                </button>
+                            </form>
+                        </td>
+                    {% endif %}
                 </tr>
             {% else %}
                 <tr>

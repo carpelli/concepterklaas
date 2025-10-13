@@ -141,8 +141,8 @@ table th {
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }
-table th:not(:first-child):last-child,
-table td:not(:first-child):last-child {
+table th.right,
+table td.right {
     text-align: right;
 }
 
