@@ -6,10 +6,7 @@ from typing import ParamSpec
 
 from flask import abort, flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
-from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm.path_registry import TokenRegistry
-from sqlalchemy.util import NoneType
 
 from . import app, db
 from .models import Event, Host, Participant
