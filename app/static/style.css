@@ -313,3 +313,20 @@ button.remove_button {
     display: inline-flex;
     align-items: center;
 }
+
+.copy-cell {
+    display: grid;
+}
+
+.copy-cell * {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.copy-cell.copied .copy-link {
+    visibility: hidden;
+}
+
+.copy-cell:not(.copied) .copied-text {
+    visibility: hidden;
+}

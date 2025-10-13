@@ -27,9 +27,10 @@
                         {% endif %}
                     </td>
                     <td>{{ check if p.concept else x }}</td>
-                    <td>
+                    <td class="copy-cell">
                         <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}"
-                           on>Copy</a>
+                           class="copy-link">Copy</a>
+                        <span class="copied-text">Copied!</span>
                     </td>
                     {% set confirm = "Are you sure you want to delete this participant? They have already submitted a concept." if p.concept else "" %}
                     {% if not assignment_run %}
@@ -53,6 +54,10 @@
                 <input type="text" id="name" name="name" required>
                 <button type="submit">Add</button>
             </div>
+            <label style="position: relative; top: -.4rem;">
+                <input type="checkbox" id="send_email" name="send_email">
+                This is me
+            </label>
         </form>
         <form class="text-center mt-1"
               method="post"
@@ -67,4 +72,13 @@
     <p>
         <a href="{{ url_for('admin') }}">Back to Admin</a>
     </p>
+    <script>
+        document.addEventListener('click', async (e) => {
+          const copyLink = e.target.closest('a.copy-link');
+          if (!copyLink) return;
+          e.preventDefault();
+          await navigator.clipboard.writeText(copyLink.href);
+          copyLink.closest('.copy-cell').classList.add('copied');
+        });
+    </script>
 {% endblock %}
