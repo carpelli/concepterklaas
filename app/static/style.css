@@ -64,7 +64,7 @@ button,
     font-family: "Roboto Mono", monospace;
 }
 
-button:hover,
+button:not([disabled]):hover,
 .button:hover {
     box-shadow: 6px 6px 0 #000;
 }
@@ -88,6 +88,11 @@ textarea {
 label {
     margin-bottom: 0.5rem;
     display: block;
+}
+
+[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 form .couple {
