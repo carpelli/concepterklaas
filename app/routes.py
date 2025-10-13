@@ -49,17 +49,27 @@ def index() -> ResponseReturnValue:
         return redirect(url_for("admin"))
     if "host_id" in session:
         return redirect(url_for("admin"))
+    if "participant_id" in session:
+        return redirect(url_for("refer"))
     return render_template("index.html")
 
 
 @app.route("/login", methods=["POST"])
 def login() -> ResponseReturnValue:
-    host = db.one_or_404(select(Host).where(Host.email == request.form["email"]))
-    if host.check_password(request.form["password"]):
+    host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
+    if host and host.check_password(request.form["password"]):
         session["host_id"] = host.id
         return redirect(url_for("admin"))
     flash("Invalid email or password.")
     return redirect(url_for("index"))
+
+
+@app.route("/refer")
+def refer() -> ResponseReturnValue:
+    if "participant_id" not in session:
+        return redirect(url_for("index"))
+    participant = Participant.query.get(session["participant_id"])
+    return render_template("refer.html", event=participant.event, participant=participant)
 
 
 @app.route("/events/<event_slug>/<participant_slug>/<token>")
@@ -71,6 +81,7 @@ def participant_view(event_slug: str, participant_slug: str, token: str) -> Resp
             Participant.event.has(slug=event_slug),
         )
     )
+    session["participant_id"] = participant.id
     if not participant.concept:
         return render_template("change_concept.html", participant=participant)
     return render_template("dashboard.html", participant=participant)
@@ -96,6 +107,7 @@ def concept(token: str) -> ResponseReturnValue:
 @app.route("/logout")
 def logout() -> ResponseReturnValue:
     session.pop("host_id", None)
+    session.pop("participant_id", None)
     flash("You have been logged out.")
     return redirect(url_for("index"))
 
@@ -114,12 +126,19 @@ def admin(host: Host) -> ResponseReturnValue:
 @app.route("/admin/<event_id>", methods=["GET"])
 @login_required
 def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
+    try:
+        me = (
+            db.session.query(Participant).filter_by(id=session["participant_id"], event=event).one()
+        )
+    except (KeyError, NoResultFound):
+        me = None
     return render_template(
         "event.html",
         event=event,
         participants=event.participants,
         assignment_run=event.assignment_run_at is not None,
         can_run_assignment=all(p.concept for p in event.participants),
+        me=me,
     )
 
 

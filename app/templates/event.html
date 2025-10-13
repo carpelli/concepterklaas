@@ -19,7 +19,13 @@
         <tbody>
             {% for p in participants %}
                 <tr>
-                    <td>{{ p.name }}</td>
+                    <td>
+                        {% if p == me %}
+                            <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">{{ p.name }}</a>
+                        {% else %}
+                            {{ p.name }}
+                        {% endif %}
+                    </td>
                     <td>{{ check if p.concept else x }}</td>
                     <td>
                         <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">Link</a>
