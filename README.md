@@ -1,4 +1,6 @@
 ## todo
 - constrain input lengths
-- think about whether to make events public (this way it's easy to lose the link)
-- make sure everyone uses the same test to check if user is admin
+- add back way to change concept
+- add onboarding
+- add way to add host as participant
+- verify that the copy url method will always copy the full url

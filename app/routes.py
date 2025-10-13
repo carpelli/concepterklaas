@@ -8,6 +8,7 @@ from flask import abort, flash, redirect, render_template, request, session, url
 from flask.typing import ResponseReturnValue
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm.path_registry import TokenRegistry
 from sqlalchemy.util import NoneType
 
 from . import app, db
@@ -41,6 +42,18 @@ def check_event_and_participant(f: Callable) -> Callable:
             if kwargs["participant"].event != event:
                 abort(404)
         return f(host, event, *args, **kwargs)
+
+    return decorated
+
+
+def check_token(f: Callable) -> Callable:
+    @wraps(f)
+    def decorated(token: str, *args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
+        try:
+            participant = Participant.query.filter_by(token=token).one()
+        except (NoResultFound, AssertionError):
+            abort(404)
+        return f(participant, *args, **kwargs)
 
     return decorated
 
@@ -88,39 +101,31 @@ def refer() -> ResponseReturnValue:
     if "participant_id" not in session:
         return redirect(url_for("index"))
     participant = Participant.query.get(session["participant_id"])
+    if not participant:
+        session.pop("participant_id", None)
+        return redirect(url_for("index"))
     return render_template("refer.html", event=participant.event, participant=participant)
 
 
-@app.route("/events/<event_slug>/<participant_slug>/<token>")
-def participant_view(event_slug: str, participant_slug: str, token: str) -> ResponseReturnValue:
-    participant = db.one_or_404(
-        select(Participant).where(
-            Participant.token == token,
-            Participant.slug == participant_slug,
-            Participant.event.has(slug=event_slug),
-        )
-    )
+@app.route("/e/<event_slug>/<participant_slug>/<token>")
+@check_token
+def participant_view(
+    participant: Participant, event_slug: str, participant_slug: str
+) -> ResponseReturnValue:
     session["participant_id"] = participant.id
+    if participant.slug != participant_slug or participant.event.slug != event_slug:
+        return redirect(url_for("participant_view", **participant.public_url_info()))
     if not participant.concept:
         return render_template("change_concept.html", participant=participant)
     return render_template("dashboard.html", participant=participant)
 
 
-@app.route("/<token>/concept", methods=["POST"])
-def concept(token: str) -> ResponseReturnValue:
-    participant = db.one_or_404(select(Participant).where(Participant.token == token))
-    if participant.event.assignment_run_at is not None:
-        return "assignment already run", 409
+@app.route("/token/<token>/change", methods=["POST"])
+@check_token
+def change_concept(participant: Participant) -> ResponseReturnValue:
     participant.concept = request.form["concept"]
     db.session.commit()
-    return redirect(
-        url_for(
-            "participant_view",
-            event_slug=participant.event.slug,
-            participant_slug=participant.slug,
-            token=participant.token,
-        )
-    )
+    return redirect(url_for("participant_view", **participant.public_url_info()))
 
 
 @app.route("/logout")
