@@ -2,38 +2,57 @@ import random
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import wraps
-from typing import Any
+from typing import ParamSpec
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import abort, flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.util import NoneType
 
 from . import app, db
 from .models import Event, Host, Participant
 
+P = ParamSpec("P")
+
 
 def login_required(f: Callable) -> Callable:
     @wraps(f)
-    def decorated(**kwargs: dict[str, Any]) -> ResponseReturnValue:
+    def decorated(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         if "host_id" not in session:
             return redirect(url_for("index")), 401
         host = db.get_or_404(Host, session["host_id"])
-        if "event_id" in kwargs:
-            event = db.get_or_404(Event, kwargs["event_id"])
-            del kwargs["event_id"]
-            return f(host, event, **kwargs)
-        return f(host, **kwargs)
+        return f(host, *args, **kwargs)
+
+    return decorated
+
+
+def check_event_and_participant(f: Callable) -> Callable:
+    @wraps(f)
+    def decorated(
+        host: Host, event_id: int, *args: P.args, **kwargs: P.kwargs
+    ) -> ResponseReturnValue:
+        event = db.get_or_404(Event, event_id)
+        if event.host != host:
+            abort(404)
+        if "participant_id" in kwargs:
+            kwargs["participant"] = db.get_or_404(Participant, kwargs["participant_id"])
+            del kwargs["participant_id"]
+            if kwargs["participant"].event != event:
+                abort(404)
+        return f(host, event, *args, **kwargs)
 
     return decorated
 
 
 def before_assignment(f: Callable) -> Callable:
     @wraps(f)
-    def decorated(host: Host, event: Event, **kwargs: dict[str, Any]) -> ResponseReturnValue:
+    def decorated(
+        host: Host, event: Event, *args: P.args, **kwargs: P.kwargs
+    ) -> ResponseReturnValue:
         if event.assignment_run_at is not None:
             return "assignment already run", 409
-        return f(host, event, **kwargs)
+        return f(host, event, *args, **kwargs)
 
     return decorated
 
@@ -125,6 +144,7 @@ def admin(host: Host) -> ResponseReturnValue:
 
 @app.route("/admin/<event_id>", methods=["GET"])
 @login_required
+@check_event_and_participant
 def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
     try:
         me = db.session.get(Participant, session["participant_id"])
@@ -140,8 +160,19 @@ def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
     )
 
 
+@app.route("/admin/<event_id>/delete", methods=["POST"])
+@login_required
+@check_event_and_participant
+@before_assignment
+def remove_event(_host: Host, event: Event) -> ResponseReturnValue:
+    db.session.delete(event)
+    db.session.commit()
+    return redirect(url_for("admin"))
+
+
 @app.route("/admin/<event_id>/participants/add", methods=["POST"])
 @login_required
+@check_event_and_participant
 @before_assignment
 def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
     name = request.form["name"]
@@ -154,15 +185,11 @@ def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
     return redirect(url_for("event_detail", event_id=event.id, _anchor="name"))
 
 
-@app.route("/admin/<event_id>/participants/delete", methods=["POST"])
+@app.route("/admin/<event_id>/participants/<participant_id>/delete", methods=["POST"])
 @login_required
+@check_event_and_participant
 @before_assignment
-def remove_participant(_host: Host, event: Event) -> ResponseReturnValue:
-    try:
-        participant = db.session.get_one(Participant, request.form["participant_id"])
-        assert participant.event == event
-    except (NoResultFound, AssertionError):
-        return "invalid participant id", 400
+def remove_participant(_host: Host, event: Event, participant: Participant) -> ResponseReturnValue:
     db.session.delete(participant)
     db.session.commit()
     return redirect(url_for("event_detail", event_id=event.id))
@@ -170,6 +197,7 @@ def remove_participant(_host: Host, event: Event) -> ResponseReturnValue:
 
 @app.route("/admin/<event_id>/assign", methods=["POST"])
 @login_required
+@check_event_and_participant
 @before_assignment
 def run_assignment(_host: Host, event: Event) -> ResponseReturnValue:
     participants = event.participants

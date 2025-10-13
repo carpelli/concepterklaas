@@ -1,5 +1,16 @@
 {% set x = heroicon_outline("x-mark", width="1em", height="1em", stroke_width="2", style="display: block") %}
 {% set check = heroicon_outline("check", width="1em", height="1em", stroke_width="2", style="display: block") %}
+{% macro delete_button(action, confirm="") %}
+    <form method="post"
+          action="{{ action }}"
+          {% if confirm %}onsubmit="return confirm('{{ confirm }}');"{% endif %}>
+        <button type="submit"
+                class="remove_button"
+                {% if assignment_run %}disabled{% endif %}>
+            {{ heroicon_solid("trash", width="1em", height="1em") }}
+        </button>
+    </form>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
