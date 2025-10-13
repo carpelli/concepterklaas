@@ -90,6 +90,21 @@ label {
     display: block;
 }
 
+form .couple {
+    display: flex;
+    align-items: flex-start;
+}
+form .couple input {
+    flex-grow: 1;
+    margin-right: 0.8rem;
+}
+
+input,
+button {
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
 /* Checkboxes and Radio Buttons */
 input[type="radio"],
 input[type="checkbox"] {
@@ -111,21 +126,19 @@ table {
 }
 table th {
     text-align: left;
-}
-th {
     border-bottom: 2px solid black;
 }
-td,
-th {
-    padding: 0.3rem 0.3rem;
+table td,
+table th {
+    padding: 0 0.3rem;
     vertical-align: middle;
-    line-height: 1;
+    line-height: 2;
 }
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }
-table th:last-child,
-td:last-child {
+table th:not(:first-child):last-child,
+table td:not(:first-child):last-child {
     text-align: right;
 }
 
@@ -276,4 +289,19 @@ ul {
 li {
     font-family: inherit;
     margin-bottom: 0.5em;
+}
+
+.concept {
+    white-space: pre-wrap;
+}
+
+button.remove_button {
+    position: relative;
+    top: 0.1rem;
+    background: none;
+    padding: 0.2rem;
+    box-shadow: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
 }

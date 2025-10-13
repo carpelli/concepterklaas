@@ -12,7 +12,7 @@
             <tr>
                 <th>Name</th>
                 <th>Concept</th>
-                <th>Magic Link</th>
+                <th>Link</th>
                 <th></th>
             </tr>
         </thead>
@@ -31,27 +31,19 @@
                     <td>
                         <form method="post"
                               action="{{ url_for('remove_participant', event_id=event.id) }}"
-                              {% if p.concept %}onsubmit="return confirm('Are you sure you want to remove this participant? They have already submitted a concept');"{% endif %}
-                              style="display: inline;
-                                     margin: 0;
-                                     padding: 0;
-                                     vertical-align: middle">
+                              {% if p.concept %}onsubmit="return confirm('Are you sure you want to remove this participant? They have already submitted a concept');"{% endif %}>
                             <input type="hidden" name="participant_id" value="{{ p.id }}">
                             <button type="submit"
                                     class="remove_button"
-                                    {% if assignment_run %}disabled{% endif %}
-                                    style="background: none;
-                                           padding: 0.1rem;
-                                           margin-right: 0.3rem;
-                                           /*border: none;
-                                           */ box-shadow: none;
-                                           cursor: pointer;
-                                           display: inline-flex;
-                                           align-items: center">
+                                    {% if assignment_run %}disabled{% endif %}>
                                 {{ heroicon_solid("trash", width="1em", height="1em") }}
                             </button>
                         </form>
                     </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td rowspan="2">No one here yet!</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -60,14 +52,8 @@
     {% if not assignment_run %}
         <form method="post"
               action="{{ url_for('add_participant', event_id=event.id) }}">
-            <label for="name">Add Participant</label>
-            <div style="display: flex; align-items: flex-start;">
-                <input type="text"
-                       id="name"
-                       name="name"
-                       required
-                       style="flex-grow: 1;
-                              margin-right: 8px">
+            <div class="couple">
+                <input type="text" id="name" name="name" required>
                 <button type="submit">Add</button>
             </div>
         </form>

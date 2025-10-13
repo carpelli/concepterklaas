@@ -3,18 +3,33 @@
 {% block content %}
     <h1>Admin</h1>
     <h2>My Events</h2>
-    <ul>
-        {% for event in host.events %}
-            <li>
-                <a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.name }}</a>
-            </li>
-        {% endfor %}
-    </ul>
+    <table>
+        <thead>
+            <th>Name</th>
+            <th></th>
+        </thead>
+        <tbody>
+            {% for event in host.events %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.name }}</a>
+                    </td>
+                    <td>rem</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td rowspan="2">No events yet!</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     <h2>Create Event</h2>
     <form method="post" action="{{ url_for('admin') }}">
         <label for="event_name">Event name:</label>
-        <input type="text" name="event_name" maxlength="50" required />
-        <button type="submit">Create</button>
+        <div class="couple">
+            <input type="text" name="event_name" maxlength="50" required />
+            <button type="submit">Create</button>
+        </div>
     </form>
     <hr />
     <p>

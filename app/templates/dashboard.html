@@ -2,13 +2,9 @@
 {% block content %}
     <h1>Hello, {{ participant.name }}!</h1>
     {% if participant.receiver %}
-        <h2>Your assigned concept.</h2>
-        <blockquote>
-            {{ participant.receiver.concept }}
-        </blockquote>
+        <h2>Your assigned concept</h2>
+        <div class="box concept">{{ participant.receiver.concept|e }}</div>
     {% endif %}
     <h2>Your concept</h2>
-    <blockquote>
-        {{ participant.concept }}
-    </blockquote>
+    <div class="box concept">{{ participant.concept|e }}</div>
 {% endblock %}
