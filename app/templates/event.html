@@ -20,11 +20,7 @@
             {% for p in participants %}
                 <tr>
                     <td>{{ p.name }}</td>
-                    <td>
-                        {% set x = heroicon_outline("x-mark", width="1em", height="1em", stroke_width="2", style="display: block") %}
-                        {% set check = heroicon_outline("check", width="1em", height="1em", stroke_width="2", style="display: block") %}
-                        {{ check if p.concept else x }}
-                    </td>
+                    <td>{{ check if p.concept else x }}</td>
                     <td>
                         <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">Link</a>
                     </td>

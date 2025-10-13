@@ -6,6 +6,8 @@
     <table>
         <thead>
             <th>Name</th>
+            <th>{{ heroicon_solid('users', width='1rem', height='1rem') }}</th>
+            <th>{{ heroicon_outline('arrows-right-left', width='1rem', height='1rem', stroke_width='2') }}</th>
             <th></th>
         </thead>
         <tbody>
@@ -14,6 +16,8 @@
                     <td>
                         <a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.name }}</a>
                     </td>
+                    <td>{{ event.participants|length }}</td>
+                    <td>{{ check if event.assignment_run_at else x }}</td>
                     <td>rem</td>
                 </tr>
             {% else %}
