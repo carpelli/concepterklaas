@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Add participants{% endblock %}
+{% block content %}
+    <h1>{{ event.name }}</h1>
+    <h2>Participants</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 80%;">Name</th>
+                <th class="right"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in event.participants %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td class="right">
+                        <form method="post" action="{{ url_for('new_event_step2') }}">
+                            <input type="hidden" name="action" value="remove_participant" />
+                            <input type="hidden" name="participant_id" value="{{ p.id }}" />
+                            <button type="submit" class="remove_button">{{ heroicon_solid("trash", width="1em", height="1em") }}</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td>No one here yet!</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <form method="post">
+        <div class="couple">
+            <input type="text" name="name" placeholder="Participant's name" />
+            <button type="submit" name="action" value="add_participant">Add</button>
+        </div>
+        <button type="submit" name="action" value="next" class="center mt-1">Next</button>
+    </form>
+{% endblock %}

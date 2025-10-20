@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Create a new event{% endblock %}
+{% block content %}
+    <h1>Create a new event</h1>
+    <form method="post">
+        <label for="title">Event title:</label>
+        <input type="text" name="title" required />
+        <label for="host_name">Your name:</label>
+        <input type="text" name="host_name" required />
+        <label>
+            <input type="checkbox" name="participate" value="y" checked />
+            I will participate
+        </label>
+        <button type="submit" class="center mt-1">Next</button>
+    </form>
+{% endblock %}

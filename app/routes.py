@@ -67,30 +67,97 @@ def before_assignment(f: Callable) -> Callable:
     return decorated
 
 
-@app.route("/", methods=["GET", "POST"])
+
+def event_from_session(f: Callable) -> Callable:
+    @wraps(f)
+    def decorated(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
+        if "event_id" not in session:
+            return redirect(url_for("index"))
+        event = db.get_or_404(Event, session["event_id"])
+        return f(event, *args, **kwargs)
+
+    return decorated
+
+
+def clear_event_session() -> None:
+    session.pop("event_id", None)
+    session.pop("host_participant_id", None)
+
+
+@app.route("/")
 def index() -> ResponseReturnValue:
+    if "host_id" in session:
+        return redirect(url_for("admin"))
+    clear_event_session()
+    return redirect(url_for("new_event_step1"))
+
+
+@app.route("/new-event/step1", methods=["GET", "POST"])
+def new_event_step1() -> ResponseReturnValue:
+    if request.method == "POST":
+        event = Event(name=request.form["title"])
+        db.session.add(event)
+        if "participate" in request.form:
+            name = request.form["host_name"]
+            if name:
+                participant = Participant(name=name, event=event)
+                db.session.add(participant)
+                db.session.commit()
+                session["host_participant_id"] = participant.id
+        db.session.commit()
+        session["event_id"] = event.id
+        return redirect(url_for("new_event_step2"))
+    return render_template("new-event/step1.html")
+
+
+@app.route("/new-event/step2", methods=["GET", "POST"])
+@event_from_session
+def new_event_step2(event: Event) -> ResponseReturnValue:
+    if request.method == "POST":
+        if request.form.get("action") == "add_participant":
+            name = request.form["name"]
+            if name:
+                participant = Participant(name=name, event=event)
+                db.session.add(participant)
+                db.session.commit()
+        elif request.form.get("action") == "remove_participant":
+            participant_id = request.form["participant_id"]
+            participant = db.get_or_404(Participant, participant_id)
+            db.session.delete(participant)
+            db.session.commit()
+        elif request.form.get("action") == "next":
+            return redirect(url_for("new_event_step3"))
+    return render_template("new-event/step2.html", event=event)
+
+
+@app.route("/new-event/step3", methods=["GET", "POST"])
+@event_from_session
+def new_event_step3(event: Event) -> ResponseReturnValue:
     if request.method == "POST":
         host = Host(email=request.form["email"])
         host.set_password(request.form["password"])
+        if "host_participant_id" in session:
+            host.participant_id = session["host_participant_id"]
+        event.host = host
         db.session.add(host)
         db.session.commit()
         session["host_id"] = host.id
+        clear_event_session()
         return redirect(url_for("admin"))
-    if "host_id" in session:
-        return redirect(url_for("admin"))
-    if "participant_id" in session:
-        return redirect(url_for("refer"))
-    return render_template("index.html")
+    return render_template("new-event/step3.html", event=event)
 
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login() -> ResponseReturnValue:
-    host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
-    if host and host.check_password(request.form["password"]):
-        session["host_id"] = host.id
-        return redirect(url_for("admin"))
-    flash("Invalid email or password.")
-    return redirect(url_for("index"))
+    if request.method == "POST":
+        host = (
+            db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
+        )
+        if host and host.check_password(request.form["password"]):
+            session["host_id"] = host.id
+            return redirect(url_for("admin"))
+        flash("Invalid email or password.")
+    return render_template("login.html")
 
 
 @app.route("/refer")
@@ -137,7 +204,8 @@ def logout() -> ResponseReturnValue:
 @login_required
 def admin(host: Host) -> ResponseReturnValue:
     if request.method == "POST":
-        event = Event(name=request.form["event_name"], host=host)
+        event = Event(name=request.form["event_name"])
+        event.host = host
         db.session.add(event)
         db.session.commit()
         return redirect(url_for("admin"))

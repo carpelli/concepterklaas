@@ -28,21 +28,22 @@ class Event(db.Model):
 
     __table_args__ = (UniqueConstraint("host_id", "slug", name="uix_name"),)
 
-    def __init__(self, name: str, host: "Host") -> None:
+    def __init__(self, name: str) -> None:
         self.name = sanitize(name)
         self.slug = slugify(name)
-        self.host = host
 
 
 class Host(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(80), unique=True)
     password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))
+    participant_id: Mapped[int | None] = mapped_column(ForeignKey("participant.id"))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     events: Mapped[list["Event"]] = relationship(back_populates="host")
+    participant: Mapped["Participant | None"] = relationship()
 
     def __init__(self, email: str) -> None:
         self.email = email
