@@ -8,3 +8,4 @@
 - check if password handling is secure
 - maybe prefill form if one of the fields is not correct
 - send to onboarding to create event
+- maybe change the page titles

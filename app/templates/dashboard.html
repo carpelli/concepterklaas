@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block title %}{{ participant.event.name }}{% endblock %}
 {% block content %}
     <h1>{{ participant.event.name }}</h1>
     <h3 class="text-center">Hello, {{ participant.name }}!</h3>
