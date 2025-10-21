@@ -1,4 +1,4 @@
-from pathlib import Path
+import os
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -29,7 +29,7 @@ app.config["SECRET_KEY"] = "a_really_strong_secret_key_goes_here"
 ADMIN_SECRET = "make-this-a-long-random-string"
 
 # Database setup
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
@@ -44,9 +44,10 @@ db.init_app(app)
 # The following ensures that foreign key constraints are enforced for SQLite.
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 from . import routes  # noqa: E402, F401
