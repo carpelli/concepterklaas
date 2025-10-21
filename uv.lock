@@ -37,7 +37,7 @@ requires-dist = [
     { name = "djlint", marker = "extra == 'dev'", specifier = ">=1.34.1" },
     { name = "flask", specifier = ">=3.1.2" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
-    { name = "heroicons", extras = ["jinja"], git = "https://github.com/carpelli/heroicons?branch=fix-double-style-argument" },
+    { name = "heroicons", extras = ["jinja"], specifier = ">=2.13.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
 ]
 provides-extras = ["dev"]
@@ -170,7 +170,11 @@ wheels = [
 [[package]]
 name = "heroicons"
 version = "2.13.0"
-source = { git = "https://github.com/carpelli/heroicons?branch=fix-double-style-argument#1c774579d89eb1a078860b1724a71bae52bc9b96" }
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/b4/ebcb01d7bbca3ef6d7076138383eb01ea83c540204ae6c2e296ce246d986/heroicons-2.13.0.tar.gz", hash = "sha256:c49d919ee3fa19c79bbfc7c111b4849fe8fc3640e4904dfdc538ff592e18b452", size = 420755, upload-time = "2025-09-18T11:25:58.012Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/09/80edcba5288b66d54611e978a2afaa406219a9e6637fc8adc43872088838/heroicons-2.13.0-py3-none-any.whl", hash = "sha256:682e3a61ede41cd9b78644977f2988d444ffb02626fe66cccd296d9fc3f4e465", size = 414973, upload-time = "2025-09-18T11:25:55.996Z" },
+]
 
 [package.optional-dependencies]
 jinja = [

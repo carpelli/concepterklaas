@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "flask>=3.1.2",
     "flask-sqlalchemy>=3.1.1",
-    "heroicons[jinja]>=1.0.0",
+    "heroicons[jinja]>=2.13.0",
     "psycopg2-binary>=2.9.11",
 ]
 
@@ -28,9 +28,6 @@ ignore = [
 
 [tool.djlint]
 profile = "jinja"
-
-[tool.uv.sources]
-heroicons = { git = "https://github.com/carpelli/heroicons", branch = "fix-double-style-argument" }
 
 [dependency-groups]
 dev = [

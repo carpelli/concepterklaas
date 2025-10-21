@@ -1,6 +1,6 @@
-{% set x = heroicon_outline("x-mark", width="1em", height="1em", stroke_width="2", style="display: block; position: relative; top: 0.05em") %}
-{% set check = heroicon_outline("check", width="1em", height="1em", stroke_width="2", style="display: block") %}
-{% set star = heroicon_solid("star", width="1em", height="1em", style="position: relative; top: 0.12em; right: 0.2em") %}
+{% set x = heroicon_outline("x-mark", width="1em", height="1em", stroke_width="2", x_style="display: block; position: relative; top: 0.05em") | replace('x-style', 'style') %}
+{% set check = heroicon_outline("check", width="1em", height="1em", stroke_width="2", x_style="display: block") | replace('x-style', 'style') %}
+{% set star = heroicon_solid("star", width="1em", height="1em", x_style="position: relative; top: 0.12em; right: 0.2em") | replace('x-style', 'style') %}
 {% macro delete_button(action, confirm="") %}
     <form method="post"
           action="{{ action }}"
