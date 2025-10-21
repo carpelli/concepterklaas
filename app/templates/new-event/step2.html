@@ -10,10 +10,14 @@
                 <th class="right"></th>
             </tr>
         </thead>
+        {{ event.host_id }}
         <tbody>
             {% for p in event.participants %}
                 <tr>
-                    <td>{{ p.name }}</td>
+                    <td>
+                        {{ p.name }}
+                        {% if p == event.host_participant %}{{ star }}{% endif %}
+                    </td>
                     <td class="right">
                         <form method="post" action="{{ url_for('new_event_step2') }}">
                             <input type="hidden" name="action" value="remove_participant" />
@@ -31,7 +35,7 @@
     </table>
     <form method="post">
         <div class="couple">
-            <input type="text" name="name" placeholder="Participant's name" />
+            <input type="text" name="name" placeholder="Participant's name" autofocus />
             <button type="submit" name="action" value="add_participant">Add</button>
         </div>
         <button type="submit" name="action" value="next" class="center mt-1">Next</button>

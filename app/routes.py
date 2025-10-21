@@ -67,7 +67,6 @@ def before_assignment(f: Callable) -> Callable:
     return decorated
 
 
-
 def event_from_session(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
@@ -100,10 +99,10 @@ def new_event_step1() -> ResponseReturnValue:
         if "participate" in request.form:
             name = request.form["host_name"]
             if name:
-                participant = Participant(name=name, event=event)
-                db.session.add(participant)
-                db.session.commit()
-                session["host_participant_id"] = participant.id
+                # participant = Participant(name=name, event=event)
+                event.host_participant = Participant(name=name, event=event)
+                # db.session.add(participant)
+                # session["host_participant_id"] = participant.id
         db.session.commit()
         session["event_id"] = event.id
         return redirect(url_for("new_event_step2"))
@@ -136,8 +135,6 @@ def new_event_step3(event: Event) -> ResponseReturnValue:
     if request.method == "POST":
         host = Host(email=request.form["email"])
         host.set_password(request.form["password"])
-        if "host_participant_id" in session:
-            host.participant_id = session["host_participant_id"]
         event.host = host
         db.session.add(host)
         db.session.commit()
@@ -150,9 +147,7 @@ def new_event_step3(event: Event) -> ResponseReturnValue:
 @app.route("/login", methods=["GET", "POST"])
 def login() -> ResponseReturnValue:
     if request.method == "POST":
-        host = (
-            db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
-        )
+        host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
         if host and host.check_password(request.form["password"]):
             session["host_id"] = host.id
             return redirect(url_for("admin"))
@@ -216,17 +211,11 @@ def admin(host: Host) -> ResponseReturnValue:
 @login_required
 @check_event_and_participant
 def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
-    try:
-        me = db.session.get(Participant, session["participant_id"])
-    except KeyError:
-        me = None
     return render_template(
         "event.html",
         event=event,
-        participants=event.participants,
-        assignment_run=event.assignment_run_at is not None,
+        assignment_has_run=event.assignment_run_at is not None,
         can_run_assignment=all(p.concept for p in event.participants),
-        me=me,
     )
 
 
@@ -248,6 +237,8 @@ def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
     name = request.form["name"]
     participant = Participant(name=name, event=event)
     if participant.slug:
+        if request.form.get("is_host"):
+            event.host_participant = participant
         db.session.add(participant)
         db.session.commit()
     else:

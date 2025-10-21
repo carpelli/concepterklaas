@@ -4,46 +4,22 @@ from typing import TypedDict
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
+from sqlalchemy.orm.relationships import foreign
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db
 from .utils import sanitize, slugify
 
 
-class Event(db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    slug: Mapped[str] = mapped_column(String(50))
-    name: Mapped[str] = mapped_column(String(50))
-    message: Mapped[str | None] = mapped_column(String(1000))
-    host_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
-    assignment_run_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    host: Mapped["Host"] = relationship(back_populates="events")
-    participants: Mapped[list["Participant"]] = relationship(
-        back_populates="event", cascade="all, delete-orphan"
-    )
-
-    __table_args__ = (UniqueConstraint("host_id", "slug", name="uix_name"),)
-
-    def __init__(self, name: str) -> None:
-        self.name = sanitize(name)
-        self.slug = slugify(name)
-
-
 class Host(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(80), unique=True)
     password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))
-    participant_id: Mapped[int | None] = mapped_column(ForeignKey("participant.id"))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
-    events: Mapped[list["Event"]] = relationship(back_populates="host")
-    participant: Mapped["Participant | None"] = relationship()
+    events: Mapped[list["Event"]] = relationship(back_populates="host", cascade="all")
 
     def __init__(self, email: str) -> None:
         self.email = email
@@ -55,6 +31,35 @@ class Host(db.Model):
         if self.password_hash is None:
             return False
         return check_password_hash(self.password_hash, password)
+
+
+class Event(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    slug: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(50))
+    message: Mapped[str | None] = mapped_column(String(1000))
+    host_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
+    host_participant_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("participant.id", ondelete="SET NULL")
+    )
+
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    assignment_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    host: Mapped["Host"] = relationship(back_populates="events")
+    participants: Mapped[list["Participant"]] = relationship(
+        foreign_keys="[Participant.event_id]", back_populates="event", cascade="all, delete-orphan"
+    )
+    host_participant: Mapped["Participant | None"] = relationship(
+        foreign_keys=[host_participant_id], post_update=True
+    )
+
+    __table_args__ = (UniqueConstraint("host_id", "slug", name="uix_name"),)
+
+    def __init__(self, name: str) -> None:
+        self.name = sanitize(name)
+        self.slug = slugify(name)
 
 
 class ParticipantUrlInfo(TypedDict):
@@ -74,7 +79,7 @@ class Participant(db.Model):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
-    event: Mapped["Event"] = relationship(back_populates="participants")
+    event: Mapped["Event"] = relationship(foreign_keys=[event_id], back_populates="participants")
     receiver: Mapped["Participant | None"] = relationship(remote_side=[id], post_update=True)
 
     @property

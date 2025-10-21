@@ -8,6 +8,8 @@ from heroicons.jinja import (
     heroicon_outline,
     heroicon_solid,
 )
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase
 
 # IMPORTANT: Change this secret key!
@@ -27,8 +29,7 @@ app.config["SECRET_KEY"] = "a_really_strong_secret_key_goes_here"
 ADMIN_SECRET = "make-this-a-long-random-string"
 
 # Database setup
-db_path = Path(app.root_path).parent / "instance" / "app.db"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path.as_posix()
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
@@ -38,5 +39,14 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
+
+
+# The following ensures that foreign key constraints are enforced for SQLite.
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
 
 from . import routes  # noqa: E402, F401

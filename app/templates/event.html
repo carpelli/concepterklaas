@@ -2,7 +2,9 @@
 {% block title %}{{ event.name }}{% endblock %}
 {% block content %}
     <h1>{{ event.name }}</h1>
-    {% if assignment_run %}<p>The assignment has been run. You can no longer add or remove participants.</p>{% endif %}
+    {% if assignment_has_run %}
+        <p>The assignment has been run. You can no longer add or remove participants.</p>
+    {% endif %}
     {% with messages = get_flashed_messages() %}
         {% if messages %}<p>{{ messages[0] }}</p>{% endif %}
     {% endwith %}
@@ -13,15 +15,16 @@
                 <th style="width: 60%;">Name</th>
                 <th style="width: 20%;">Concept</th>
                 <th style="width: 20%;">Link</th>
-                {% if not assignment_run %}<th class="right"></th>{% endif %}
+                {% if not assignment_has_run %}<th class="right"></th>{% endif %}
             </tr>
         </thead>
         <tbody>
-            {% for p in participants %}
+            {% for p in event.participants %}
                 <tr>
                     <td>
-                        {% if p == me %}
+                        {% if p == event.host_participant %}
                             <a href="{{ url_for('participant_view', event_slug=event.slug, participant_slug=p.slug, token=p.token) }}">{{ p.name }}</a>
+                            {{ star }}
                         {% else %}
                             {{ p.name }}
                         {% endif %}
@@ -33,7 +36,7 @@
                         <span class="copied-text">Copied!</span>
                     </td>
                     {% set confirm = "Are you sure you want to delete this participant? They have already submitted a concept." if p.concept else "" %}
-                    {% if not assignment_run %}
+                    {% if not assignment_has_run %}
                         <td class="right">
                             {{ delete_button(url_for('remove_participant', event_id=event.id, participant_id=p.id) , confirm=confirm) }}
                         </td>
@@ -47,17 +50,19 @@
         </tbody>
     </table>
     <p></p>
-    {% if not assignment_run %}
+    {% if not assignment_has_run %}
         <form method="post"
               action="{{ url_for('add_participant', event_id=event.id) }}">
             <div class="couple">
                 <input type="text" id="name" name="name" required>
                 <button type="submit">Add</button>
             </div>
-            <label style="position: relative; top: -.4rem;">
-                <input type="checkbox" id="send_email" name="send_email">
-                This is me
-            </label>
+            {% if event.host_participant is none %}
+                <label style="position: relative; top: -.4rem;">
+                    <input type="checkbox" name="is_host">
+                    This is me
+                </label>
+            {% endif %}
         </form>
         <form class="text-center mt-1"
               method="post"
