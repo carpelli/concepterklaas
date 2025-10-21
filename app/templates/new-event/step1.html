@@ -7,13 +7,11 @@
     </p>
     <form method="post">
         <label for="title">Event title:</label>
-        <input type="text" name="title" required />
-        <label for="host_name">Your name:</label>
-        <input type="text" name="host_name" required />
-        <label>
-            <input type="checkbox" name="participate" value="y" checked />
-            I will participate
-        </label>
+        <input type="text" name="title" maxlength="50" required />
+        <input type="checkbox" name="participate" id="participate" value="y" />
+        <label for="participate" class="inline">I will participate</label>
+        <label for="host_name" class="if-participate">Your name:</label>
+        <input type="text" name="host_name" maxlength="80" class="if-participate" />
         <button type="submit" class="center mt-1">Next</button>
     </form>
 {% endblock %}

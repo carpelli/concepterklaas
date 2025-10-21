@@ -34,7 +34,11 @@
     </table>
     <form method="post">
         <div class="couple">
-            <input type="text" name="name" placeholder="Participant's name" autofocus />
+            <input type="text"
+                   name="name"
+                   maxlength="80"
+                   placeholder="Participant's name"
+                   autofocus />
             <button type="submit" name="action" value="add_participant">Add</button>
         </div>
         <button type="submit" name="action" value="next" class="center mt-1">Next</button>

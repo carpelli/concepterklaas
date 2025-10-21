@@ -294,15 +294,18 @@ a:hover {
 
 /* Media Queries */
 
-ul {
-    list-style-type: square;
-    margin: 1em 0 1em 2em;
-    padding: 0;
+/* Specifics */
+
+.inline {
+    display: inline-block;
 }
 
-li {
-    font-family: inherit;
-    margin-bottom: 0.5em;
+.if-participate {
+    display: none;
+}
+
+#participate:checked ~ .if-participate {
+    display: block;
 }
 
 .concept {

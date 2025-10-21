@@ -97,11 +97,11 @@ def index() -> ResponseReturnValue:
 def new_event_step1() -> ResponseReturnValue:
     if request.method == "POST":
         host_name = request.form["host_name"]
-        if not slugify(host_name):
-            flash("Host name cannot be empty", "warning")
-            return redirect(url_for("new_event_step1"))
         event = Event(name=request.form["title"])
         if "participate" in request.form:
+            if not slugify(host_name):
+                flash("Host name cannot be empty", "warning")
+                return redirect(url_for("new_event_step1"))
             event.host_participant = Participant(name=host_name, event=event)
         db.session.add(event)
         db.session.commit()
