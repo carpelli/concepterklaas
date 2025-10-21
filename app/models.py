@@ -14,7 +14,7 @@ from .utils import sanitize, slugify
 class Host(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(80), unique=True)
-    password_hash: Mapped[str | None] = deferred(mapped_column(String(128)))
+    password_hash: Mapped[str | None] = deferred(mapped_column(String(256)))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
@@ -40,7 +40,13 @@ class Event(db.Model):
     message: Mapped[str | None] = mapped_column(String(1000))
     host_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
     host_participant_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("participant.id", ondelete="SET NULL")
+        Integer,
+        ForeignKey(
+            "participant.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_event_host_participant_id",
+        ),
     )
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
