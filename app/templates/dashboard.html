@@ -1,10 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Hello, {{ participant.name }}!</h1>
+    <h1>{{ participant.event.name }}</h1>
+    <h3 class="text-center">Hello, {{ participant.name }}!</h3>
     {% if participant.receiver %}
         <h2>Your assigned concept</h2>
         <div class="box concept">{{ participant.receiver.concept|e }}</div>
     {% endif %}
     <h2>Your concept</h2>
     <div class="box concept">{{ participant.concept|e }}</div>
+    <a href="{{ url_for('change_concept', token=participant.token) }}"
+       class="button">Change</a>
 {% endblock %}

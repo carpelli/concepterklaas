@@ -8,6 +8,8 @@ from flask import abort, flash, redirect, render_template, request, session, url
 from flask.typing import ResponseReturnValue
 from sqlalchemy.exc import NoResultFound
 
+from app.utils import slugify
+
 from . import app, db
 from .models import Event, Host, Participant
 
@@ -94,15 +96,14 @@ def index() -> ResponseReturnValue:
 @app.route("/new-event/step1", methods=["GET", "POST"])
 def new_event_step1() -> ResponseReturnValue:
     if request.method == "POST":
+        host_name = request.form["host_name"]
+        if not slugify(host_name):
+            flash("Host name cannot be empty", "warning")
+            return redirect(url_for("new_event_step1"))
         event = Event(name=request.form["title"])
-        db.session.add(event)
         if "participate" in request.form:
-            name = request.form["host_name"]
-            if name:
-                # participant = Participant(name=name, event=event)
-                event.host_participant = Participant(name=name, event=event)
-                # db.session.add(participant)
-                # session["host_participant_id"] = participant.id
+            event.host_participant = Participant(name=host_name, event=event)
+        db.session.add(event)
         db.session.commit()
         session["event_id"] = event.id
         return redirect(url_for("new_event_step2"))
@@ -179,9 +180,11 @@ def participant_view(
     return render_template("dashboard.html", participant=participant)
 
 
-@app.route("/token/<token>/change", methods=["POST"])
+@app.route("/token/<token>/change", methods=["GET", "POST"])
 @check_token
 def change_concept(participant: Participant) -> ResponseReturnValue:
+    if request.method == "GET":
+        return render_template("change_concept.html", participant=participant)
     participant.concept = request.form["concept"]
     db.session.commit()
     return redirect(url_for("participant_view", **participant.public_url_info()))
@@ -242,7 +245,7 @@ def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
         db.session.add(participant)
         db.session.commit()
     else:
-        flash("name cannot be empty")
+        flash("Name cannot be empty", "warning")
     return redirect(url_for("event_detail", event_id=event.id, _anchor="name"))
 
 

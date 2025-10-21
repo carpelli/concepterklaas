@@ -4,3 +4,4 @@
 - add onboarding
 - add way to add host as participant
 - verify that the copy url method will always copy the full url
+- dark mode
