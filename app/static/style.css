@@ -64,13 +64,25 @@ button,
     border: 2px solid #000;
     box-shadow: 4px 4px 0 #000;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: box-shadow 0.2s ease;
     font-family: "Roboto Mono", monospace;
 }
 
 button:not([disabled]):hover,
 .button:hover {
     box-shadow: 6px 6px 0 #000;
+}
+
+button:not([disabled]):active,
+.button:active {
+    box-shadow: 4px 4px 0 #000;
+}
+
+@media (hover: none) {
+    button:not([disabled]):active,
+    .button:active {
+        box-shadow: 2px 2px 0 #000;
+    }
 }
 
 /* Forms */
@@ -81,6 +93,7 @@ select {
     padding: 0.75rem;
     margin-bottom: 1rem;
     border: 2px solid #000;
+    border-radius: 0;
     box-shadow: 4px 4px 0 #000;
     font-family: "Roboto Mono", monospace;
 }
@@ -306,6 +319,10 @@ a:hover {
 
 #participate:checked ~ .if-participate {
     display: block;
+}
+
+#participate:checked ~ button {
+    margin-top: 2rem;
 }
 
 .concept {
