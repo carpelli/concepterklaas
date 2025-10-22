@@ -329,15 +329,29 @@ a:hover {
     white-space: pre-wrap;
 }
 
-button.remove_button {
+.remove_button {
     position: relative;
     top: 0.1rem;
     background: none;
     padding: 0.2rem;
-    box-shadow: none;
+    box-shadow: 2px 2px 0 #000;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+}
+
+.remove_button:hover {
+    box-shadow: 3px 3px 0 #000 !important;
+}
+
+.remove_button:active {
+    box-shadow: 2px 2px 0 #000 !important;
+}
+
+@media (hover: none) {
+    .remove_button:active {
+        box-shadow: 2px 2px 0 #000;
+    }
 }
 
 .copy-cell {
