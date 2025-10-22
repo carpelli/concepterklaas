@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime
 from typing import TypedDict
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -33,24 +33,23 @@ class Host(db.Model):
 
 
 class Event(db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     slug: Mapped[str] = mapped_column(String(50), index=True)
     name: Mapped[str] = mapped_column(String(50))
     message: Mapped[str | None] = mapped_column(String(1000))
-    host_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
+    host_id: Mapped[int | None] = mapped_column(ForeignKey("host.id"))
     host_participant_id: Mapped[int | None] = mapped_column(
-        Integer,
         ForeignKey(
             "participant.id",
             ondelete="SET NULL",
             use_alter=True,
             name="fk_event_host_participant_id",
-        ),
+        )
     )
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
-    assignment_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+    assignment_run_at: Mapped[datetime | None] = mapped_column()
 
     host: Mapped["Host"] = relationship(back_populates="events")
     participants: Mapped[list["Participant"]] = relationship(
