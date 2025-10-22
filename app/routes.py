@@ -6,9 +6,7 @@ from typing import ParamSpec
 
 from flask import abort, flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
-from sqlalchemy.exc import IntegrityError, NoResultFound
-
-from app.utils import slugify
+from sqlalchemy.exc import IntegrityError
 
 from . import app, db
 from .models import Event, Host, Participant
@@ -21,16 +19,13 @@ def login_required(f: Callable) -> Callable:
     def decorated(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         if "host_id" not in session:
             return redirect(url_for("index")), 401
-        host = Host.query.get(session["host_id"])
-        if host is None:
-            flash("User not found")
-            return redirect(url_for("logout")), 401
+        host = db.get_or_404(Host, session["host_id"])
         return f(host, *args, **kwargs)
 
     return decorated
 
 
-def check_event_and_participant(f: Callable) -> Callable:
+def check_event_and_participant(f: Callable) -> Callable:  # TODO CHECK
     @wraps(f)
     def decorated(
         host: Host, event_id: int, *args: P.args, **kwargs: P.kwargs
@@ -51,10 +46,7 @@ def check_event_and_participant(f: Callable) -> Callable:
 def check_token(f: Callable) -> Callable:
     @wraps(f)
     def decorated(token: str, *args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
-        try:
-            participant = Participant.query.filter_by(token=token).one()
-        except (NoResultFound, AssertionError):
-            abort(404)
+        participant = Participant.query.filter_by(token=token).first_or_404()
         return f(participant, *args, **kwargs)
 
     return decorated
@@ -101,51 +93,60 @@ def index() -> ResponseReturnValue:
 @app.route("/new-event/step1", methods=["GET", "POST"])
 def new_event_step1() -> ResponseReturnValue:
     logged_in = "host_id" in session
-    if request.method == "POST":
-        host_name = request.form["host_name"]
-        event = Event(name=request.form["title"])
+    if request.method == "GET":
+        return render_template("new-event/step1.html", logged_in=logged_in)
 
-        if "participate" in request.form:
-            if not slugify(host_name):
-                flash("Host name cannot be empty", "error")
-                return redirect(url_for("new_event_step1"))
-            event.host_participant = Participant(name=host_name, event=event)
+    host_name = request.form.get("host_name", "")
+    event = Event(name=request.form["title"])
 
-        if logged_in:
-            event.host_id = session["host_id"]
-            try:
-                db.session.add(event)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                flash("Event with the same name already exists", "error")
-                return redirect(url_for("new_event_step1"))
-            return redirect(url_for("event_detail", slug=event.slug))
+    # Handle host participation
+    if "participate" in request.form:
+        if not host_name:
+            flash("Host name cannot be empty", "error")
+            return redirect(url_for("new_event_step1"))
+        event.host_participant = Participant(name=host_name, event=event)
 
+    # Save event
+    if logged_in:
+        event.host_id = session["host_id"]
+
+    try:
         db.session.add(event)
         db.session.commit()
-        session["event_id"] = event.id
-        return redirect(url_for("new_event_step2"))
-    return render_template("new-event/step1.html", logged_in=logged_in)
+    except IntegrityError:
+        db.session.rollback()
+        flash("Event with the same name already exists", "error")
+        return redirect(url_for("new_event_step1"))
+
+    # Redirect based on login status
+    if logged_in:
+        return redirect(url_for("event_detail", event_slug=event.slug))
+
+    session["event_id"] = event.id
+    return redirect(url_for("new_event_step2"))
 
 
 @app.route("/new-event/step2", methods=["GET", "POST"])
 @event_from_session
 def new_event_step2(event: Event) -> ResponseReturnValue:
-    if request.method == "POST":
-        if request.form.get("action") == "add_participant":
-            name = request.form["name"]
-            if name:
-                participant = Participant(name=name, event=event)
-                db.session.add(participant)
-                db.session.commit()
-        elif request.form.get("action") == "remove_participant":
-            participant_id = request.form["participant_id"]
-            participant = db.get_or_404(Participant, participant_id)
-            db.session.delete(participant)
+    if request.method == "GET":
+        return render_template("new-event/step2.html", event=event)
+
+    action = request.form.get("action")
+
+    if action == "add_participant":
+        name = request.form.get("name", "").strip()
+        if name:
+            participant = Participant(name=name, event=event)
+            db.session.add(participant)
             db.session.commit()
-        elif request.form.get("action") == "next":
-            return redirect(url_for("new_event_step3"))
+    elif action == "remove_participant":
+        participant = db.get_or_404(Participant, request.form["participant_id"])
+        db.session.delete(participant)
+        db.session.commit()
+    elif action == "next":
+        return redirect(url_for("new_event_step3"))
+
     return render_template("new-event/step2.html", event=event)
 
 
@@ -187,6 +188,8 @@ def participant_view(
     participant: Participant, event_slug: str, participant_slug: str
 ) -> ResponseReturnValue:
     session["participant_id"] = participant.id
+
+    # Redirect to canonical URL if needed
     if participant.slug != participant_slug or participant.event.slug != event_slug:
         return redirect(url_for("participant_view", **participant.public_url_info()))
     if not participant.concept:
@@ -206,31 +209,35 @@ def change_concept(participant: Participant) -> ResponseReturnValue:
 
 @app.route("/login", methods=["GET", "POST"])
 def login() -> ResponseReturnValue:
-    if request.method == "POST":
-        host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
-        if host and host.check_password(request.form["password"]):
-            session["host_id"] = host.id
+    if request.method != "POST":
+        return render_template("admin/login.html")
 
-            if request.args.get("new_event") and "event_id" in session:
-                event = Event.query.get(session["event_id"])
-                if event:
-                    event.host_id = host.id
-                    try:
-                        db.session.commit()
-                    except IntegrityError:
-                        db.session.rollback()
-                        flash("You already have an event with this name")
-                        return redirect(url_for("new_even_step1"))
-
-            return redirect(url_for("admin"))
+    host = Host.query.filter_by(email=request.form["email"]).first()
+    if not host or not host.check_password(request.form["password"]):
         flash("Invalid email or password.")
-    return render_template("admin/login.html")
+        return render_template("admin/login.html")
+
+    session["host_id"] = host.id
+
+    # Handle pending event from session
+    if request.args.get("new_event") and "event_id" in session:
+        event = Event.query.get(session["event_id"])
+        if event:
+            event.host_id = host.id
+            try:
+                db.session.commit()
+                clear_event_session()
+            except IntegrityError:
+                db.session.rollback()
+                flash("You already have an event with this name")
+                return redirect(url_for("new_event_step1"))
+
+    return redirect(url_for("admin"))
 
 
 @app.route("/logout")
 def logout() -> ResponseReturnValue:
-    session.pop("host_id", None)
-    session.pop("participant_id", None)
+    session.clear()
     flash("You have been logged out.")
     return redirect(url_for("index"))
 
@@ -296,14 +303,13 @@ def remove_participant(_host: Host, event: Event, participant: Participant) -> R
 @before_assignment
 def run_assignment(_host: Host, event: Event) -> ResponseReturnValue:
     participants = event.participants
-    if any(not p.concept for p in participants):
+    if not participants or any(not p.concept for p in participants):
         return "not all participants have a concept", 409
 
-    # The assignment logic
-    shuffled = [*participants]
-    random.shuffle(shuffled)
-    for giver, receiver in zip(shuffled, shuffled[1:] + shuffled[:1], strict=True):
-        giver.receiver = receiver
+    # Simple circular assignment
+    random.shuffle(participants)
+    for i, participant in enumerate(participants):
+        participant.receiver = participants[(i + 1) % len(participants)]
 
     event.assignment_run_at = datetime.now(UTC)
     db.session.commit()
