@@ -12,6 +12,19 @@
         </button>
     </form>
 {%- endmacro %}
+{% macro noop() %}{% endmacro %}
+{% macro reload_on_backbutton() %}
+    <script>
+        window.addEventListener("pageshow", (event) => {
+          if (event.persisted) {
+            // Page came from bfcache — possible stale state
+            // eslint-disable-next-line
+            {{ (caller or noop)() }}
+            location.reload();
+          }
+        });
+    </script>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -31,5 +44,6 @@
             {% endwith %}
             {% block content %}{% endblock %}
         </main>
+        {% block scripts %}{% endblock %}
     </body>
 </html>

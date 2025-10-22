@@ -77,13 +77,18 @@
     <p>
         <a href="{{ url_for('admin') }}">Back to Admin</a>
     </p>
+{% endblock %}
+{% block scripts %}
     <script>
         document.addEventListener('click', async (e) => {
-          const copyLink = e.target.closest('a.copy-link');
-          if (!copyLink) return;
-          e.preventDefault();
-          await navigator.clipboard.writeText(copyLink.href);
-          copyLink.closest('.copy-cell').classList.add('copied');
+        const copyLink = e.target.closest('a.copy-link');
+        if (!copyLink) return;
+        e.preventDefault();
+        await navigator.clipboard.writeText(copyLink.href);
+        copyLink.closest('.copy-cell').classList.add('copied');
         });
     </script>
+    {% call reload_on_backbutton() %}
+        document.querySelectorAll('.copied').forEach(el => el.classList.remove('copied'));
+    {% endcall %}
 {% endblock %}

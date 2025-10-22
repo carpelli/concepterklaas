@@ -41,3 +41,4 @@
         <a href="{{ url_for('logout') }}">Logout</a>
     </p>
 {% endblock %}
+{% block scripts %}{{ reload_on_backbutton() }}{% endblock %}
