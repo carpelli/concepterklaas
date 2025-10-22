@@ -165,15 +165,15 @@ def participant_view(
     if participant.slug != participant_slug or participant.event.slug != event_slug:
         return redirect(url_for("participant_view", **participant.public_url_info()))
     if not participant.concept:
-        return render_template("change_concept.html", participant=participant)
-    return render_template("dashboard.html", participant=participant)
+        return render_template("participant/change.html", participant=participant)
+    return render_template("participant/index.html", participant=participant)
 
 
 @app.route("/token/<token>/change", methods=["GET", "POST"])
 @check_token
 def change_concept(participant: Participant) -> ResponseReturnValue:
     if request.method == "GET":
-        return render_template("change_concept.html", participant=participant)
+        return render_template("participant/change.html", participant=participant)
     participant.concept = request.form["concept"]
     db.session.commit()
     return redirect(url_for("participant_view", **participant.public_url_info()))
@@ -218,7 +218,7 @@ def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
         "admin/event.html",
         event=event,
         assignment_has_run=event.assignment_run_at is not None,
-        can_run_assignment=all(p.concept for p in event.participants),
+        can_run_assignment=event.participants and all(p.concept for p in event.participants),
     )
 
 

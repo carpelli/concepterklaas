@@ -29,12 +29,20 @@ h3,
 h4,
 h5,
 h6 {
-    margin-bottom: 1rem;
+    margin-bottom: 0.2rem;
     font-weight: 700;
+}
+
+h1 {
+    margin-bottom: 1rem;
 }
 
 p {
     margin-bottom: 1rem;
+}
+
+.italic {
+    font-style: italic;
 }
 
 main {
@@ -145,7 +153,7 @@ table {
     border: 2px solid black;
     box-shadow: 4px 4px 0 #000;
     padding: 0.2rem 0.3rem;
-    margin: 1rem 0;
+    margin: 0 0 1rem;
 }
 table th {
     text-align: left;

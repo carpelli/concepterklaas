@@ -3,7 +3,7 @@
 {% block content %}
     <h1>{{ participant.event.name }}</h1>
     <h3 class="text-center">Hello, {{ participant.name }}!</h3>
-    <h2>Your concept</h2>
+    <h2 class="mt-2">Your concept</h2>
     <form action="{{ url_for('change_concept', token=participant.token) }}"
           method="post">
         <textarea name="concept" rows="3" maxlength="1000" autofocus>{{ participant.concept if participant.concept }}</textarea>
