@@ -229,7 +229,7 @@ table .right {
     margin-bottom: 1rem;
 }
 
-.alert-info {
+.alert-message {
     background-color: #e7f5ff;
     color: #000;
 }
@@ -239,7 +239,7 @@ table .right {
     color: #000;
 }
 
-.alert-danger {
+.alert-error {
     background-color: #f8d7da;
     color: #000;
 }
