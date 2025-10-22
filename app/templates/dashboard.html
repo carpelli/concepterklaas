@@ -8,7 +8,33 @@
         <div class="box concept">{{ participant.receiver.concept|e }}</div>
     {% endif %}
     <h2>Your concept</h2>
-    <div class="box concept">{{ participant.concept|e }}</div>
-    <a href="{{ url_for('change_concept', token=participant.token) }}"
-       class="button">Change</a>
+    <div>
+        <div id="view" class="box concept">{{ participant.concept|e }}</div>
+        <a id="edit-link"
+           href="{{ url_for('change_concept', token=participant.token) }}"
+           class="button">Change</a>
+    </div>
+    <form id="editor"
+          style="display: none"
+          action="{{ url_for('change_concept', token=participant.token) }}"
+          method="post">
+        <textarea name="concept" rows="3" maxlength="1000" autofocus>{{ participant.concept if participant.concept }}</textarea>
+        <button type="submit">Submit</button>
+    </form>
+{% endblock %}
+{% block scripts %}
+    <script>
+      const textarea = document.querySelector('textarea');
+      textarea.rows = Math.max(3, textarea.value.split('\n').length);
+
+      const link = document.getElementById('edit-link');
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        link.style.display = 'none';
+        document.getElementById('view').style.display = 'none';
+        document.getElementById('editor').style.display = 'block';
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+      });
+    </script>
 {% endblock %}
