@@ -113,7 +113,7 @@ def new_event_step1() -> ResponseReturnValue:
             event.host_id = session["host_id"]
             db.session.add(event)
             db.session.commit()
-            return redirect(url_for("event_detail", event_id=event.id))
+            return redirect(url_for("event_detail", slug=event.slug))
         db.session.add(event)
         db.session.commit()
         session["event_id"] = event.id
@@ -221,10 +221,10 @@ def admin(host: Host) -> ResponseReturnValue:
     return render_template("admin/index.html", host=host)
 
 
-@app.route("/admin/<event_id>", methods=["GET"])
+@app.route("/admin/<event_slug>", methods=["GET"])
 @login_required
-@check_event_and_participant
-def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
+def event_detail(host: Host, event_slug: str) -> ResponseReturnValue:
+    event = Event.query.filter_by(host=host, slug=event_slug).one_or_404()
     return render_template(
         "admin/event.html",
         event=event,
@@ -257,7 +257,7 @@ def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
         db.session.commit()
     else:
         flash("Name cannot be empty", "warning")
-    return redirect(url_for("event_detail", event_id=event.id, _anchor="name"))
+    return redirect(url_for("event_detail", event_slug=event.slug, _anchor="name"))
 
 
 @app.route("/admin/<event_id>/participants/<participant_id>/delete", methods=["POST"])
@@ -267,7 +267,7 @@ def add_participant(_host: Host, event: Event) -> ResponseReturnValue:
 def remove_participant(_host: Host, event: Event, participant: Participant) -> ResponseReturnValue:
     db.session.delete(participant)
     db.session.commit()
-    return redirect(url_for("event_detail", event_id=event.id))
+    return redirect(url_for("event_detail", event_slug=event.slug))
 
 
 @app.route("/admin/<event_id>/assign", methods=["POST"])
@@ -287,4 +287,4 @@ def run_assignment(_host: Host, event: Event) -> ResponseReturnValue:
 
     event.assignment_run_at = datetime.now(UTC)
     db.session.commit()
-    return redirect(url_for("event_detail", event_id=event.id))
+    return redirect(url_for("event_detail", event_slug=event.slug))

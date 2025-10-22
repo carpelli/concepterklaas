@@ -14,7 +14,7 @@
             {% for event in host.events|sort(attribute="created_at") %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.name }}</a>
+                        <a href="{{ url_for('event_detail', event_slug=event.slug) }}">{{ event.name }}</a>
                     </td>
                     <td>{{ event.participants|length }}</td>
                     <td>{{ check if event.assignment_run_at else x }}</td>

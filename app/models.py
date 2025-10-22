@@ -34,7 +34,7 @@ class Host(db.Model):
 
 class Event(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    slug: Mapped[str] = mapped_column(String(50))
+    slug: Mapped[str] = mapped_column(String(50), index=True)
     name: Mapped[str] = mapped_column(String(50))
     message: Mapped[str | None] = mapped_column(String(1000))
     host_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("host.id"))
