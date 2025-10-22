@@ -12,9 +12,8 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase
 
-# IMPORTANT: Change this secret key!
-# You can generate one using: python -c 'import os; print(os.urandom(16))'
 app = Flask(__name__)
+
 app.jinja_env.globals.update(
     {
         "heroicon_micro": heroicon_micro,
@@ -36,13 +35,12 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 
-# The following ensures that foreign key constraints are enforced for SQLite.
+# Ensure foreign key constraints are enforced for SQLite
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, _connection_record):  # noqa: ANN001, ANN201
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+        with dbapi_connection.cursor() as cursor:
+            cursor.execute("PRAGMA foreign_keys=ON")
 
 
 from . import routes  # noqa: E402, F401
