@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Register as host{% endblock %}
 {% block content %}
-    <h1>Register</h1>
+    <h1>Concepterklaas</h1>
+    <h3 class="text-center">{{ event.name }}</h3>
+    <h2>Register</h2>
+    <p>
+        or <a href="{{ url_for('login', new_event=True) }}">log in</a>
+    </p>
     <form method="post">
         <label for="email">Email:</label>
         <input type="email" name="email" required />
