@@ -38,7 +38,7 @@ db.init_app(app)
 
 # The following ensures that foreign key constraints are enforced for SQLite.
 @event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(dbapi_connection, _connection_record):  # noqa: ANN001, ANN201
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
