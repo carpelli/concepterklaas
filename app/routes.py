@@ -145,17 +145,6 @@ def new_event_step3(event: Event) -> ResponseReturnValue:
     return render_template("new-event/step3.html", event=event)
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login() -> ResponseReturnValue:
-    if request.method == "POST":
-        host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
-        if host and host.check_password(request.form["password"]):
-            session["host_id"] = host.id
-            return redirect(url_for("admin"))
-        flash("Invalid email or password.")
-    return render_template("login.html")
-
-
 @app.route("/refer")
 def refer() -> ResponseReturnValue:
     if "participant_id" not in session:
@@ -190,6 +179,17 @@ def change_concept(participant: Participant) -> ResponseReturnValue:
     return redirect(url_for("participant_view", **participant.public_url_info()))
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login() -> ResponseReturnValue:
+    if request.method == "POST":
+        host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
+        if host and host.check_password(request.form["password"]):
+            session["host_id"] = host.id
+            return redirect(url_for("admin"))
+        flash("Invalid email or password.")
+    return render_template("admin/login.html")
+
+
 @app.route("/logout")
 def logout() -> ResponseReturnValue:
     session.pop("host_id", None)
@@ -207,7 +207,7 @@ def admin(host: Host) -> ResponseReturnValue:
         db.session.add(event)
         db.session.commit()
         return redirect(url_for("admin"))
-    return render_template("admin.html", host=host)
+    return render_template("admin/index.html", host=host)
 
 
 @app.route("/admin/<event_id>", methods=["GET"])
@@ -215,7 +215,7 @@ def admin(host: Host) -> ResponseReturnValue:
 @check_event_and_participant
 def event_detail(_host: Host, event: Event) -> ResponseReturnValue:
     return render_template(
-        "event.html",
+        "admin/event.html",
         event=event,
         assignment_has_run=event.assignment_run_at is not None,
         can_run_assignment=all(p.concept for p in event.participants),
