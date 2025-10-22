@@ -92,6 +92,8 @@ def clear_event_session() -> None:
 def index() -> ResponseReturnValue:
     if "host_id" in session:
         return redirect(url_for("admin"))
+    if "participant_id" in session:
+        return redirect(url_for("refer"))
     clear_event_session()
     return redirect(url_for("new_event_step1"))
 
