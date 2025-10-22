@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 {% block title %}Login{% endblock %}
 {% block content %}
-    <h1>Login</h1>
-    <form method="post" action="{{ url_for('login') }}">
+    <h1>Concepterklaas</h1>
+    <h2>Host login</h2>
+    <form method="post"
+          {% if request.args.new_event %}action="{{ url_for('login', new_event=True) }}"{% endif %}>
         <label for="email">Email:</label>
         <input type="email" name="email" required />
         <label for="password">Password:</label>
         <input type="password" name="password" required />
         <button type="submit">Login</button>
     </form>
+    {% if not request.args.new_event %}
+        <h3 class="mt-2">Not a host?</h3>
+        If you're looking for your participant page, ask your host for the link!
+    {% endif %}
 {% endblock %}

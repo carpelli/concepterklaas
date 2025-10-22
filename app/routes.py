@@ -196,6 +196,11 @@ def login() -> ResponseReturnValue:
         host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
         if host and host.check_password(request.form["password"]):
             session["host_id"] = host.id
+            if request.args.get("new_event") and "event_id" in session:
+                event = Event.query.get(session["event_id"])
+                if event:
+                    event.host_id = host.id
+                    db.session.commit()
             return redirect(url_for("admin"))
         flash("Invalid email or password.")
     return render_template("admin/login.html")
