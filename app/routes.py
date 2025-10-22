@@ -162,7 +162,7 @@ def refer() -> ResponseReturnValue:
     if not participant:
         session.pop("participant_id", None)
         return redirect(url_for("index"))
-    return render_template("refer.html", event=participant.event, participant=participant)
+    return render_template("participant/refer.html", participant=participant)
 
 
 @app.route("/e/<event_slug>/<participant_slug>/<token>")

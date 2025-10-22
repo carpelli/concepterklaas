@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>{{ participant.event.name }}</h1>
+    <h3 class="text-center">Hello, {{ participant.name }}!</h3>
+    <div class="text-center">
+        <a class="button mt-1"
+           href="{{ url_for('participant_view', event_slug=participant.event.slug, participant_slug=participant.slug, token=participant.token) }}">Go to my page</a>
+        <p class="mt-1">
+            or <a href="{{ url_for('logout') }}">forget me</a>
+        </p>
+    </div>
+{% endblock %}
