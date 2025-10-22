@@ -21,7 +21,10 @@ def login_required(f: Callable) -> Callable:
     def decorated(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         if "host_id" not in session:
             return redirect(url_for("index")), 401
-        host = db.get_or_404(Host, session["host_id"])
+        host = Host.query.get(session["host_id"])
+        if host is None:
+            flash("User not found")
+            return redirect(url_for("logout")), 401
         return f(host, *args, **kwargs)
 
     return decorated
