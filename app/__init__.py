@@ -25,10 +25,7 @@ app.jinja_env.globals.update(
 )
 app.config["SECRET_KEY"] = "a_really_strong_secret_key_goes_here"
 
-# IMPORTANT: Change this admin secret to protect the assignment route!
-ADMIN_SECRET = "make-this-a-long-random-string"
-
-# Database setup
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
