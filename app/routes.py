@@ -6,7 +6,7 @@ from typing import ParamSpec
 
 from flask import abort, flash, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from app.utils import slugify
 
@@ -104,16 +104,24 @@ def new_event_step1() -> ResponseReturnValue:
     if request.method == "POST":
         host_name = request.form["host_name"]
         event = Event(name=request.form["title"])
+
         if "participate" in request.form:
             if not slugify(host_name):
-                flash("Host name cannot be empty", "warning")
+                flash("Host name cannot be empty", "error")
                 return redirect(url_for("new_event_step1"))
             event.host_participant = Participant(name=host_name, event=event)
+
         if logged_in:
             event.host_id = session["host_id"]
-            db.session.add(event)
-            db.session.commit()
+            try:
+                db.session.add(event)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Event with the same name already exists", "error")
+                return redirect(url_for("new_event_step1"))
             return redirect(url_for("event_detail", slug=event.slug))
+
         db.session.add(event)
         db.session.commit()
         session["event_id"] = event.id
@@ -148,11 +156,17 @@ def new_event_step3(event: Event) -> ResponseReturnValue:
         host = Host(email=request.form["email"])
         host.set_password(request.form["password"])
         event.host = host
-        db.session.add(host)
-        db.session.commit()
-        session["host_id"] = host.id
-        clear_event_session()
-        return redirect(url_for("admin"))
+
+        try:
+            db.session.add(host)
+            db.session.commit()
+            session["host_id"] = host.id
+            clear_event_session()
+            return redirect(url_for("admin"))
+        except IntegrityError:
+            db.session.rollback()
+            flash("A host with this email already exists", "warning")
+            return redirect(url_for("new_event_step3"))
     return render_template("new-event/step3.html", event=event)
 
 
@@ -196,11 +210,18 @@ def login() -> ResponseReturnValue:
         host = db.session.query(Host).filter_by(email=request.form["email"]).one_or_none()
         if host and host.check_password(request.form["password"]):
             session["host_id"] = host.id
+
             if request.args.get("new_event") and "event_id" in session:
                 event = Event.query.get(session["event_id"])
                 if event:
                     event.host_id = host.id
-                    db.session.commit()
+                    try:
+                        db.session.commit()
+                    except IntegrityError:
+                        db.session.rollback()
+                        flash("You already have an event with this name")
+                        return redirect(url_for("new_even_step1"))
+
             return redirect(url_for("admin"))
         flash("Invalid email or password.")
     return render_template("admin/login.html")
@@ -217,12 +238,6 @@ def logout() -> ResponseReturnValue:
 @app.route("/admin", methods=["GET", "POST"])
 @login_required
 def admin(host: Host) -> ResponseReturnValue:
-    if request.method == "POST":
-        event = Event(name=request.form["event_name"])
-        event.host = host
-        db.session.add(event)
-        db.session.commit()
-        return redirect(url_for("admin"))
     return render_template("admin/index.html", host=host)
 
 
