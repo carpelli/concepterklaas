@@ -28,14 +28,9 @@
             {% endfor %}
         </tbody>
     </table>
-    <h3 class="mt-1">Create Event</h3>
-    <form method="post" action="{{ url_for('admin') }}">
-        <label for="event_name">Event name:</label>
-        <div class="couple">
-            <input type="text" name="event_name" maxlength="50" required />
-            <button type="submit">Create</button>
-        </div>
-    </form>
+    <p class="text-center">
+        <a href="{{ url_for('new_event_step1') }}" class="center">Create new event</a>
+    </p>
     <hr class="mt-2">
     <p>
         <a href="{{ url_for('logout') }}">Logout</a>

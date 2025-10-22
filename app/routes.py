@@ -98,6 +98,7 @@ def index() -> ResponseReturnValue:
 
 @app.route("/new-event/step1", methods=["GET", "POST"])
 def new_event_step1() -> ResponseReturnValue:
+    logged_in = "host_id" in session
     if request.method == "POST":
         host_name = request.form["host_name"]
         event = Event(name=request.form["title"])
@@ -106,11 +107,16 @@ def new_event_step1() -> ResponseReturnValue:
                 flash("Host name cannot be empty", "warning")
                 return redirect(url_for("new_event_step1"))
             event.host_participant = Participant(name=host_name, event=event)
+        if logged_in:
+            event.host_id = session["host_id"]
+            db.session.add(event)
+            db.session.commit()
+            return redirect(url_for("event_detail", event_id=event.id))
         db.session.add(event)
         db.session.commit()
         session["event_id"] = event.id
         return redirect(url_for("new_event_step2"))
-    return render_template("new-event/step1.html")
+    return render_template("new-event/step1.html", logged_in=logged_in)
 
 
 @app.route("/new-event/step2", methods=["GET", "POST"])

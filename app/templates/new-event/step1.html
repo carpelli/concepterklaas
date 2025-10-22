@@ -2,9 +2,11 @@
 {% block title %}Create a new event{% endblock %}
 {% block content %}
     <h1>Create a new event</h1>
-    <p class="text-center">
-        or <a href="{{ url_for('login') }}">log in</a>
-    </p>
+    {% if not logged_in %}
+        <p class="text-center">
+            or <a href="{{ url_for('login') }}">log in</a>
+        </p>
+    {% endif %}
     <form method="post">
         <label for="title">Event title:</label>
         <input type="text" name="title" maxlength="50" required />
@@ -12,6 +14,6 @@
         <label for="participate" class="inline">I will participate</label>
         <label for="host_name" class="if-participate">Your name:</label>
         <input type="text" name="host_name" maxlength="80" class="if-participate" />
-        <button type="submit" class="center mt-1">Next</button>
+        <button type="submit" class="center mt-1">{{ "Create" if logged_in else "Next" }}</button>
     </form>
 {% endblock %}
