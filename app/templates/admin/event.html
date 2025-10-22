@@ -19,7 +19,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for p in event.participants %}
+            {% for p in event.participants|sort(attribute="name") %}
                 <tr>
                     <td>
                         {% if p == event.host_participant %}
@@ -54,7 +54,12 @@
         <form method="post"
               action="{{ url_for('add_participant', event_id=event.id) }}">
             <div class="couple">
-                <input type="text" id="name" name="name" maxlength="80" required>
+                <input type="text"
+                       id="name"
+                       name="name"
+                       maxlength="80"
+                       placeholder="Participant's name"
+                       required>
                 <button type="submit">Add</button>
             </div>
             {% if event.host_participant is none %}

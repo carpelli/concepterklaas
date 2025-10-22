@@ -11,7 +11,7 @@
             <th class="right"></th>
         </thead>
         <tbody>
-            {% for event in host.events %}
+            {% for event in host.events|sort(attribute="created_at") %}
                 <tr>
                     <td>
                         <a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.name }}</a>
