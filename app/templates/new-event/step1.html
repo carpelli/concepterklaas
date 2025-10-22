@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Create a new event{% endblock %}
+{% block title %}Concepterklaas{% endblock %}
 {% block content %}
-    <h1>Create a new event</h1>
+    <h1>Concepterklaas</h1>
+    <h2 class="mt-2">Create a new event</h2>
     {% if not logged_in %}
-        <p class="text-center">
+        <p>
             or <a href="{{ url_for('login') }}">log in</a>
         </p>
     {% endif %}
