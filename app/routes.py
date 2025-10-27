@@ -302,7 +302,7 @@ def remove_participant(_host: Host, event: Event, participant: Participant) -> R
 @check_event_and_participant
 @before_assignment
 def run_assignment(_host: Host, event: Event) -> ResponseReturnValue:
-    participants = event.participants
+    participants = [*event.participants]  # don't manipulate the data model list
     if not participants or any(not p.concept for p in participants):
         return "not all participants have a concept", 409
 
